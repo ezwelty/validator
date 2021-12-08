@@ -49,7 +49,7 @@ def length_less_than_or_equal_to(s: pd.Series, *, max: int) -> pd.Series:
 @check(message='Value does not match regular expression {regex}')
 def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
   """Check whether values match a regular expression."""
-  return s.str.fullmatch(regex)
+  return s.str.fullmatch(regex).astype('boolean')
 
 @check(message='Not found in {table}.{column}')
 def in_foreign_column(
