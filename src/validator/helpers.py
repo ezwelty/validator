@@ -1,5 +1,8 @@
+import keyword
+import types
 import typing
-from typing import Dict, List, Literal
+from typing import Any, Dict, List, Literal
+
 
 Scope = Literal['column', 'table', 'tables']
 ARGUMENT_SCOPES: Dict[str, Scope] = {
@@ -35,3 +38,40 @@ def superscopes(scope: Scope) -> List[str]:
   """
   return list(RANKS)[RANKS[scope] + 1:]
 
+def is_module_path(path: str) -> bool:
+  """Check whether a string is a valid Python module (dot) path."""
+  parts = path.split('.')
+  for part in parts:
+    if not part.isidentifier() or keyword.iskeyword(str):
+      return False
+  return True
+
+def set_module_path(path: str, value: Any, root: types.ModuleType) -> Any:
+  """Set a value on a module path, creating child modules as needed."""
+  if not is_module_path(path):
+    raise ValueError(f"'{path}' is not a valid module path")
+  names = path.split('.')
+  # Dry run
+  node = root
+  for i, name in enumerate(names[:-1]):
+    if hasattr(node, name):
+      if not isinstance(getattr(node, name), types.ModuleType):
+        raise ValueError(
+          f"'{node.__name__}.{name}' already exists and is not a module"
+        )
+      node = getattr(node, name)
+    else:
+      break
+  if (i + 2) == len(names):
+    if hasattr(node, names[-1]) and isinstance(getattr(node, names[-1]), types.ModuleType):
+        raise ValueError(
+          f"'{node.__name__}.{names[-1]}' already exists and is a module"
+        )
+  # Apply path
+  node = root
+  for name in names[:-1]:
+    if not hasattr(node, name):
+      setattr(node, name, types.ModuleType(f'{node.__name__}.{name}'))
+    node = getattr(node, name)
+  setattr(node, names[-1], value)
+  return getattr(node, names[-1])

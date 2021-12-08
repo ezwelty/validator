@@ -491,7 +491,7 @@ def check(
     sig = Signature(parameters, return_annotation=Check)
 
     # TODO: Augment docstring
-    @makefun.with_signature(sig, func_name=fn.__name__, doc=fn.__doc__)
+    @makefun.with_signature(sig, func_name=fn.__name__, doc=fn.__doc__, check=True)
     def method(**kwargs):
       fn_kwargs = {key: kwargs[key] for key in kwargs if key in reserved}
       cls_kwargs = {
