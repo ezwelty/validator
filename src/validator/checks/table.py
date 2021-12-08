@@ -1,34 +1,28 @@
-from typing import Any, Dict, Hashable, List, Sequence, Tuple
+from typing import Any, Dict, Hashable, List, Sequence, Union
 
 import pandas as pd
 
 from ..check import check
 
-@check(message='Does not have column {column}')
-def has_column(df: pd.DataFrame, *, column: Hashable) -> bool:
-  return column in df
-
-@check
-def fill_column(df: pd.DataFrame, *, column: Hashable, value: Any = pd.NA, dtype: str = None) -> Tuple[bool, pd.DataFrame]:
-  if column not in df:
-    # NOTE: Modifies dataframe in place
-    df[column] = pd.Series(value, dtype=dtype, index=df.index)
-  return True, df
-
 @check(message='Has no rows')
 def not_empty(df: pd.DataFrame) -> bool:
   return not df.empty
 
-# TODO: Error lists columns that do not belong
-@check(message='Has columns other than {columns}')
-def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: bool = False) -> Tuple[bool, pd.DataFrame]:
-  extras = [column for column in df if column not in columns]
-  if extras and drop:
+@check(message='Missing required column', axis='column')
+def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False, value: Any = pd.NA, dtype: str = None) -> Dict[Hashable, bool]:
+  for column in columns:
+    if column not in df and fill:
+      # NOTE: Modifies dataframe in place
+      df[column] = pd.Series(value, dtype=dtype, index=df.index)
+  return {column: column in df for column in columns}
+
+@check(message='Column not one of {columns}', axis='column')
+def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: bool = False) -> Dict[Hashable, bool]:
+  if drop:
+    extras = [column for column in df if column not in columns]
     # NOTE: Modifies dataframe in place
     df.drop(columns=extras, inplace=True)
-  if extras:
-    return False, df
-  return True, df
+  return {column: column in columns for column in df}
 
 @check(message='Duplicate combination of columns {columns}')
 def unique_rows(df: pd.DataFrame, *, columns: List[str] = None) -> pd.Series:

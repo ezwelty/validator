@@ -132,7 +132,8 @@ class Check:
     kwargs: Dict[str, Any] = None,
     message: str = None,
     name: str = None,
-    severity: Literal['error', 'warning'] = 'error'
+    severity: Literal['error', 'warning'] = 'error',
+    axis: Literal['row', 'column', 'table'] = None
   ) -> None:
     parsed = parse_check_function(fn, args=args, kwargs=kwargs)
     self.fn = fn
@@ -141,6 +142,14 @@ class Check:
     self.message = message
     self.name = name or fn.__name__
     self.severity = severity
+    if axis is not None:
+      if (
+        (self.scope == 'tables' and axis not in {'table'}) or
+        (self.scope == 'table' and axis not in {'row', 'column'}) or
+        (self.scope == 'column' and axis not in {'row'})
+      ):
+        raise ValueError(f'Unsupported axis {axis} for {self.scope} check')
+    self.axis = axis or ('table' if self.scope == 'tables' else 'row')
 
   @property
   def scope(self) -> Scope:
@@ -204,15 +213,15 @@ class Check:
     else:
       valid, output = result, None
     # Check result
-    if isinstance(valid, pd.Series) and not pd.api.types.is_bool_dtype(valid):
-      error = ValueError('Result is not a boolean column')
-      valid = None
-      # try:
-      #   valid = valid.astype('boolean', copy=False)
-      # except TypeError:
-      #   raise ValueError(
-      #     f'Result could not be coerced to boolean from type {valid.dtype}'
-      #   )
+    try:
+      if isinstance(valid, dict):
+        valid = pd.Series(valid, dtype='boolean')
+      elif isinstance(valid, pd.Series) and not pd.api.types.is_bool_dtype(valid):
+        valid = valid.astype('boolean', copy=False)
+    except TypeError:
+      raise ValueError(
+        f'Result of {self.fn} could not be coerced to a boolean Series'
+      )
     return Result(self, target=target, valid=valid, input=value, output=output)
 
   # def __call__(
@@ -355,6 +364,13 @@ class Result:
 
   @property
   def status(self) -> Literal['pass', 'fail', 'error', 'skip']:
+    if self.error is not None:
+      return 'error'
+    if (
+      (self.valid is None and self.error is None) or
+      (isinstance(self.valid, pd.Series) and self.valid.empty)
+    ):
+      return 'skip'
     if (
       self.valid is True or
       (isinstance(self.valid, pd.Series) and self.valid.all())
@@ -365,10 +381,6 @@ class Result:
       (isinstance(self.valid, pd.Series) and not self.valid.all())
     ):
       return 'fail'
-    if self.valid is None and self.error is not None:
-      return 'error'
-    if self.valid is None and self.error is None:
-      return 'skip'
     assert False
 
   @property
@@ -381,6 +393,12 @@ class Result:
       return str(self.error)
     if status == 'skip' and self.skip is not None:
       return self.skip
+
+  @property
+  def axis(self) -> Optional[Literal['row', 'column', 'table']]:
+    if self.valid is None or isinstance(self.valid, bool):
+      return None
+    return self.check.axis
 
   # @property
   # def rows(self) -> list:
@@ -457,7 +475,8 @@ def check(
   args: Dict[str, Scope] = None,
   message: str = None,
   name: str = None,
-  severity: Literal['error', 'warning'] = 'error'
+  severity: Literal['error', 'warning'] = 'error',
+  axis: Literal['row', 'column', 'table'] = None
 ) -> Callable:
 
   def wrapper(fn: Callable):
@@ -480,6 +499,7 @@ def check(
         'message': message,
         'name': name,
         'severity': severity,
+        'axis': axis,
         **{key: kwargs[key] for key in kwargs if key not in reserved}
       }
       return Check(fn, kwargs=fn_kwargs, **cls_kwargs)
