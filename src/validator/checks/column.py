@@ -52,7 +52,7 @@ def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
   return s.str.fullmatch(regex).astype('boolean')
 
 @check(message='Not found in {column}')
-def in_column(s: pd.Series, df: pd.DataFrame, *, column: str) -> pd.Series:
+def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
   """Check whether values exist in another column."""
   other = df[column]
   return s.isin(other) | s.isnull()
@@ -60,10 +60,10 @@ def in_column(s: pd.Series, df: pd.DataFrame, *, column: str) -> pd.Series:
 @check(message='Not found in {table}.{column}')
 def in_foreign_column(
   s: pd.Series,
-  dfs: Dict[str, pd.DataFrame],
+  dfs: Dict[Hashable, pd.DataFrame],
   *,
-  table: str,
-  column: str
+  table: Hashable,
+  column: Hashable
 ) -> pd.Series:
   """
   Check whether values exist in a foreign column.
