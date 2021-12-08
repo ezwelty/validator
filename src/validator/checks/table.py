@@ -48,6 +48,26 @@ def unique_rows(df: pd.DataFrame, *, columns: List[str] = None) -> pd.Series:
   """
   return ~df.duplicated(subset=columns, keep=False)
 
+@check(message='Not found in {list(columns.values)}')
+def in_columns(df: pd.DataFrame, *, columns: Dict[str, str]) -> pd.Series:
+  """
+  Check whether column values exist in other columns of the table.
+
+  Rows with one or more null values in `columns` are ignored.
+  """
+  idx = range(len(columns))
+  local = df[columns.keys()].set_axis(idx, axis=1)
+  other = df[columns.values()].set_axis(idx, axis=1)
+  valid = ~(
+    pd.concat([other, local]).
+    duplicated().
+    iloc[len(other):]
+  )
+  valid.index = local.index
+  # Pass check if one or more local columns are null
+  valid |= local.isna().any(axis=1)
+  return valid
+
 @check(message='Not found in {table}.{list(columns.values())}')
 def in_foreign_columns(
   df: pd.DataFrame,

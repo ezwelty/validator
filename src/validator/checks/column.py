@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple
 
 import pandas as pd
 
@@ -50,6 +50,12 @@ def length_less_than_or_equal_to(s: pd.Series, *, max: int) -> pd.Series:
 def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
   """Check whether values match a regular expression."""
   return s.str.fullmatch(regex).astype('boolean')
+
+@check(message='Not found in {column}')
+def in_column(s: pd.Series, df: pd.DataFrame, *, column: str) -> pd.Series:
+  """Check whether values exist in another column."""
+  other = df[column]
+  return s.isin(other) | s.isnull()
 
 @check(message='Not found in {table}.{column}')
 def in_foreign_column(
