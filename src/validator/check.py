@@ -198,22 +198,22 @@ class Check:
     try:
       result = self.fn(**args, **self.kwargs)
     except Exception as error:
-      return Result(self, target=target, valid=None, value=value, error=error)
+      return Result(self, target=target, valid=None, input=value, error=error)
     if isinstance(result, tuple):
-      valid, value = result
+      valid, output = result
     else:
-      valid, value = result, value
+      valid, output = result, None
     # Check result
     if isinstance(valid, pd.Series) and not pd.api.types.is_bool_dtype(valid):
       error = ValueError('Result is not a boolean column')
-      return Result(self, target=target, valid=None, value=value, error=error)
+      valid = None
       # try:
       #   valid = valid.astype('boolean', copy=False)
       # except TypeError:
       #   raise ValueError(
       #     f'Result could not be coerced to boolean from type {valid.dtype}'
       #   )
-    return Result(self, target=target, valid=valid, value=value)
+    return Result(self, target=target, valid=valid, input=value, output=output)
 
   # def __call__(
   #   self,
@@ -332,7 +332,8 @@ class Result:
     self,
     check: Check,
     target: Target,
-    value: Value = None,
+    input: Value = None,
+    output: Value = None,
     valid: Valid = None,
     error: Exception = None,
     skip: str = None
@@ -340,7 +341,8 @@ class Result:
     self.check = check
     self.target = target
     self.valid = valid
-    self.value = value
+    self.input = input
+    self.output = output
     self.error = error
     self.skip = skip
 

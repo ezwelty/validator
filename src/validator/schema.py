@@ -194,21 +194,21 @@ class Schema:
         target=key
       )
       # Reassign new value
-      if result.value is not args[check.scope]:
+      if result.output is not None and result.output is not args[check.scope]:
         if check.scope == 'tables':
-          tables = result.value
+          tables = result.output
         elif check.scope == 'table':
           if isinstance(target, Table):
-            table == result.value
+            table == result.output
           else:
-            tables[key.table] = result.value
+            tables[key.table] = result.output
         elif check.scope == 'column':
           if isinstance(target, Column):
-            column == result.value
+            column == result.output
           elif isinstance(target, Table):
-            table[key.column] = result.value
+            table[key.column] = result.output
           else:
-            tables[key.table][key.column] = result.value
+            tables[key.table][key.column] = result.output
       results[key] = result
       # Process results
       # if type(key) is type(target):
