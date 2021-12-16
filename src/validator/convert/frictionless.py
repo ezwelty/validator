@@ -68,6 +68,7 @@ def schema_to_schema(schema: 'Schema', strict: bool = True) -> Dict[Union[Table,
     if optional:
       tasks.append(checks.table.has_columns(optional, fill=True))
     tasks.append(checks.table.only_has_columns(required + optional, drop=True))
+  tasks.append(checks.table.has_sorted_columns(schema.field_names, sort=not strict))
   flow[Table()] = tasks
   # Column checks
   for field in schema.fields:
@@ -113,6 +114,7 @@ def package_to_schema(package: 'Package', strict: bool = True) -> Dict[Union[Tab
   required = [resource.name for resource in package.resources]
   tasks.append(checks.tables.has_tables(required, fill=not strict))
   tasks.append(checks.tables.only_has_tables(required, drop=not strict))
+  tasks.append(checks.tables.has_sorted_tables(package.resource_names, sort=not strict))
   flow[Tables()] = tasks
   # Table checks
   for resource in package.resources:

@@ -13,7 +13,7 @@ def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable],
   for table in tables:
     if table not in dfs:
       if fill:
-        # NOTE: Modifies dataframes in place
+        # NOTE: Modifies dictionary in place
         dfs[table] = value
   return {table: table in dfs for table in tables}
 
@@ -22,6 +22,18 @@ def only_has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hasha
   for table in dfs:
     if table not in tables:
       if drop:
-        # NOTE: Modifies dataframes in place
+        # NOTE: Modifies dictionary in place
         del dfs[table]
   return {table: table in tables for table in dfs}
+
+@check(message='Tables do not follow order {tables}')
+def has_sorted_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
+  if sort:
+    temp = {table: dfs[table] for table in tables if table in dfs}
+    temp.update({table: dfs[table] for table in dfs if table not in tables})
+    # NOTE: Modifies dictionary in place
+    dfs.clear()
+    dfs.update(temp)
+  actual = [table for table in dfs if table in tables]
+  expected = [table for table in tables if table in dfs]
+  return actual == expected

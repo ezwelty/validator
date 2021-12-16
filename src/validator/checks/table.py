@@ -24,6 +24,18 @@ def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: boo
     df.drop(columns=extras, inplace=True)
   return {column: column in columns for column in df}
 
+@check(message='Columns do not follow order {columns}')
+def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
+  if sort:
+    # NOTE: Modifies dataframe in place
+    for i, column in enumerate(columns):
+      if column in df:
+        s = df.pop(column)
+        df.insert(i, column, s)
+  actual = [column for column in df if column in columns]
+  expected = [column for column in columns if column in df]
+  return actual == expected
+
 @check(message='Duplicate combination of columns {columns}')
 def unique_rows(df: pd.DataFrame, *, columns: List[str] = None) -> pd.Series:
   """
