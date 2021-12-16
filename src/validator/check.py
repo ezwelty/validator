@@ -1,6 +1,6 @@
 import inspect
 from inspect import Parameter, Signature
-from typing import Any, Callable, Dict, Hashable, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, Hashable, Iterable, List, Literal, Optional, Union
 
 import makefun
 import pandas as pd
@@ -446,6 +446,22 @@ class Result:
   #   mask.loc[rows, columns] = True
   #   return mask
 
+class Report:
+
+  def __init__(
+    self,
+    results: Iterable[Result],
+    target: Target,
+    input: Value = None,
+    output: Value = None
+  ) -> None:
+    self.results: List[Result] = list(results)
+    self.target = target
+    self.input = input
+    self.output = output
+
+  def __repr__(self):
+    return f'Report({self.target})'
 
 # class CheckResults:
 

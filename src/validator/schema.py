@@ -1,9 +1,10 @@
-import copy
+# Allow the use of copy= function argument
+import copy as copylib
 from typing import Any, Dict, Hashable, Iterable, List, Tuple, Union
 
 import pandas as pd
 
-from .check import Check, Result
+from .check import Check, Result, Report
 from .targets import Target, Column, Table, Tables
 
 # ---- Schema helpers ----
@@ -28,7 +29,7 @@ def _flatten_schema(schema: SchemaDict) -> Tuple[FlatSchemaDict, List[str]]:
     elif isinstance(value, Iterable):
       for subvalue in value:
         if isinstance(subvalue, Check):
-          save_check(copy.copy(key), subvalue)
+          save_check(copylib.copy(key), subvalue)
         else:
           errors.append(f'{prefix} {subvalue}: Not a Check')
     else:
@@ -127,7 +128,8 @@ class Schema:
     table: pd.DataFrame = None,
     tables: Dict[Hashable, pd.DataFrame] = None,
     *,
-    target: Target = None
+    target: Target = None,
+    copy: bool = True
   ) -> List[Result]:
     context = {Column: column, Table: table, Tables: tables}
     if all(value is None for value in context.values()):
@@ -139,6 +141,9 @@ class Schema:
         target = cls()
       elif value is None and isinstance(target, cls):
         raise ValueError(f'Provide a value for {target} ({cls.__name__.lower()})')
+    input = context[target.__class__]
+    if copy:
+      input = copylib.deepcopy(input)
     # if column is None and table is None and tables is None:
     #   raise ValueError('Provide at least one of column, table, or tables')
     # if target is None:
@@ -232,4 +237,5 @@ class Schema:
       #     results[key] = f'Table {key.table} not in input'
       #     break
       #   data = input[key.table]
-    return list(results.values())
+    output = {'column': column, 'table': table, 'tables': tables}[target.scope]
+    return Report(results.values(), target=target, input=input, output=output)
