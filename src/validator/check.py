@@ -6,7 +6,7 @@ import makefun
 import pandas as pd
 
 from .helpers import ARGUMENT_SCOPES, RANKS, Scope, superscopes
-from .targets import Target
+from .targets import Column, Table, Target
 
 
 # ---- Helpers ----
@@ -400,15 +400,48 @@ class Result:
       return None
     return self.check.axis
 
-  # @property
-  # def rows(self) -> list:
-  #   return [] if self.values is None else self.values.index.tolist()
+  @property
+  def table(self) -> Optional[Union[Hashable, List[Hashable]]]:
+    return (
+      (self.axis == 'table' and list(self.valid[~self.valid].index)) or
+      (isinstance(self.target, (Table, Column)) and self.target.table) or
+      None
+    )
 
-  # @property
-  # def columns(self) -> list:
-  #   if self.column:
-  #     return [self.column]
-  #   return self.values.columns.tolist() if isinstance(self.values, pd.DataFrame) else []
+  @property
+  def column(self) -> Optional[Union[Hashable, List[Hashable]]]:
+    return (
+      (self.axis == 'column' and list(self.valid[~self.valid].index)) or
+      (isinstance(self.target, Column) and self.target.column) or
+      None
+    )
+
+  @property
+  def row(self) -> Optional[List[Hashable]]:
+    return (
+      (self.axis == 'row' and list(self.valid[~self.valid].index)) or
+      None
+    )
+
+  @property
+  def value(self) -> Optional[List[Hashable]]:
+    return (
+      (self.axis == 'row' and isinstance(self.target, Column) and list(self.input[~self.valid])) or
+      # (self.axis == 'row' and isinstance(self.target, Table) and list(self.input[~self.valid].to_dict('records'))) or
+      None
+    )
+
+  def as_dict(self) -> dict:
+    return {
+      'table': self.table,
+      'column': self.column,
+      'row': self.row,
+      'value': self.value,
+      'check': self.check,
+      'severity': self.check.severity,
+      'status': self.status,
+      'message': self.message
+    }
 
   # @property
   # def scope(self) -> str:
@@ -462,6 +495,23 @@ class Report:
 
   def __repr__(self):
     return f'Report({self.target})'
+
+  def as_df(self, explode: bool = True) -> pd.DataFrame:
+    dicts = [result.as_dict() for result in self.results]
+    df = pd.DataFrame(dicts)
+    if explode:
+      df = df.explode('table').explode('column')
+      mask = df['value'].isnull() & df['row'].notnull()
+      df = pd.concat([
+        df[~mask].explode(['row', 'value']),
+        df[mask].explode('row')
+      ])
+      df.sort_index(inplace=True)
+    # df = df.convert_dtypes()
+    # df = df.mask(df.applymap(lambda x: x is None), '')
+    # df = df[df['status'] != 'pass']
+    # print(tabulate.tabulate(df, headers='keys', showindex=False, tablefmt='github'))
+    return df
 
 # class CheckResults:
 
