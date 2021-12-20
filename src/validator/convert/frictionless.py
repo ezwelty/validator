@@ -126,12 +126,17 @@ def package_to_schema(package: 'Package', strict: bool = True) -> Dict[Union[Tab
       if key['reference']['resource'] and key['reference']['resource'] != resource.name:
         local = _format_names(key['fields'])
         foreign = _format_names(key['reference']['fields'])
-        tasks.append(
-          checks.table.in_foreign_columns(
-            table=key['reference']['resource'],
-            columns={x: y for x, y in zip(local, foreign)}
+        if len(local) == 1:
+          flow[Column(local[0], table=resource.name)] = checks.column.in_foreign_column(
+            table=key['reference']['resource'], column=foreign[0]
           )
-        )
+        else:
+          tasks.append(
+            checks.table.in_foreign_columns(
+              table=key['reference']['resource'],
+              columns={x: y for x, y in zip(local, foreign)}
+            )
+          )
     if tasks:
       flow[Table(resource.name)] = tasks
   return flow
