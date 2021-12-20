@@ -1,20 +1,18 @@
 import inspect
 from inspect import Parameter, Signature
-from typing import Any, Callable, Dict, Hashable, Iterable, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, Hashable, Iterable, List, Literal, Optional, Sequence, Union
 
 import makefun
 import pandas as pd
 
-from .helpers import ARGUMENT_SCOPES, RANKS, Scope, superscopes
-from .targets import Column, Table, Target
+from .helpers import ARGUMENT_SCOPES, filter_kwargs, RANKS, Scope, superscopes
+from .targets import Column, Table, Tables, Target
 
 
 # ---- Helpers ----
 
 def parse_check_function(
-  fn: Callable,
-  args: Dict[str, Scope] = None,
-  kwargs: Dict[str, Any] = None
+  fn: Callable, args: Dict[str, Scope] = None, kwargs: Dict[str, Any] = None
 ) -> dict:
   """
   Parse properties of a check function from its signature.
@@ -130,11 +128,13 @@ class Check:
     fn: Callable,
     args: Dict[str, Scope] = None,
     kwargs: Dict[str, Any] = None,
+    requires: Union[Column, Table, Sequence[Union[Column, Table]]] = None,
     message: str = None,
     name: str = None,
     severity: Literal['error', 'warning'] = 'error',
     axis: Literal['row', 'column', 'table'] = None
   ) -> None:
+    # TODO: Check that requires= is consistent with positional arguments
     parsed = parse_check_function(fn, args=args, kwargs=kwargs)
     self.fn = fn
     self.args: Dict[str, Scope] = parsed['args']
@@ -150,6 +150,30 @@ class Check:
       ):
         raise ValueError(f'Unsupported axis {axis} for {self.scope} check')
     self.axis = axis or ('table' if self.scope == 'tables' else 'row')
+    # Requires
+    if requires is None:
+      requires = []
+    elif isinstance(requires, (Column, Table)):
+      requires = [requires]
+    else:
+      requires = list(requires)
+    for r in requires:
+      if (
+        isinstance(r, Tables) or
+        (isinstance(r, Table) and r.table is None) or
+        (isinstance(r, Column) and r.table is None and r.column is None)
+      ):
+        raise ValueError(
+          'Require {r} by using a {r.scope} positional argument'
+        )
+      if isinstance(r, Table) and not self.scopes.get('tables', False):
+          raise ValueError('Cannot require {r} without a tables argument')
+      if isinstance(r, Column):
+        if r.table is None and not self.scopes.get('table', False):
+          raise ValueError(f'Cannot require {r} without a table argument')
+        elif r.table is not None and not self.scopes.get('tables', False):
+          raise ValueError(f'Cannot require {r} without a tables argument')
+    self.requires: List[Union[Column, Table]] = requires
 
   @property
   def scope(self) -> Scope:
@@ -542,7 +566,8 @@ def check(
   message: str = None,
   name: str = None,
   severity: Literal['error', 'warning'] = 'error',
-  axis: Literal['row', 'column', 'table'] = None
+  axis: Literal['row', 'column', 'table'] = None,
+  requires: Callable = None
 ) -> Callable:
 
   def wrapper(fn: Callable):
@@ -566,6 +591,7 @@ def check(
         'name': name,
         'severity': severity,
         'axis': axis,
+        'requires': filter_kwargs(requires, **fn_kwargs) if requires else None,
         **{key: kwargs[key] for key in kwargs if key not in reserved}
       }
       return Check(fn, kwargs=fn_kwargs, **cls_kwargs)

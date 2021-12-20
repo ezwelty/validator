@@ -1,7 +1,8 @@
+import inspect
 import keyword
 import types
 import typing
-from typing import Any, Dict, List, Literal
+from typing import Any, Callable, Dict, List, Literal
 
 
 Scope = Literal['column', 'table', 'tables']
@@ -75,3 +76,12 @@ def set_module_path(path: str, value: Any, root: types.ModuleType) -> Any:
     node = getattr(node, name)
   setattr(node, names[-1], value)
   return getattr(node, names[-1])
+
+def filter_kwargs(fn: Callable, *args: Any, **kwargs: Any) -> Callable:
+  params = inspect.signature(fn).parameters
+  has_kwargs = any(
+    param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values()
+  )
+  if not has_kwargs:
+    kwargs = {key: kwargs[key] for key in kwargs if key in params}
+  return fn(*args, **kwargs)

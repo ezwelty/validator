@@ -191,6 +191,22 @@ class Schema:
         message = f'Required inputs {missing} not provided'
         results[key] = Result(check, target=key, skip=message)
         continue
+      # Check presence of explicit requirements
+      for xtarget in check.requires:
+        # NOTE: Assume only table or column
+        if xtarget.table is not None and xtarget.table not in args['tables']:
+          missing.append(xtarget)
+        elif isinstance(xtarget, Column):
+          # NOTE: Assume column is named
+          if xtarget.table is None:
+            if xtarget.column not in args['table']:
+              missing.append(xtarget)
+          elif xtarget.column not in args['tables'][xtarget.table]:
+            missing.append(xtarget)
+      if missing:
+        message = f'Required inputs {missing} not found'
+        results[key] = Result(check, target=key, skip=message)
+        continue
       # Run check
       result = check(
         value=args[check.scope],

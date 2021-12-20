@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple
 import pandas as pd
 
 from ..check import check
+from ..targets import Column
 
 
 # ---- Checks ----
@@ -51,13 +52,19 @@ def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
   """Check whether values match a regular expression."""
   return s.str.fullmatch(regex).astype('boolean')
 
-@check(message='Not found in {column}')
+@check(
+  message='Not found in {column}',
+  requires=lambda column: Column(column)
+)
 def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
   """Check whether values exist in another column."""
   other = df[column]
   return s.isin(other) | s.isnull()
 
-@check(message='Not found in {table}.{column}')
+@check(
+  message='Not found in {table}.{column}',
+  requires=lambda table, column: Column(column, table=table)
+)
 def in_foreign_column(
   s: pd.Series,
   dfs: Dict[Hashable, pd.DataFrame],
