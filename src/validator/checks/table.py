@@ -74,18 +74,11 @@ def in_columns(df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]) -> pd.Ser
 
   Rows with one or more null values in `columns` are ignored.
   """
-  idx = range(len(columns))
-  local = df[columns.keys()].set_axis(idx, axis=1)
-  other = df[columns.values()].set_axis(idx, axis=1)
-  valid = ~(
-    pd.concat([other, local]).
-    duplicated().
-    iloc[len(other):]
-  )
-  valid.index = local.index
+  local = df[columns.keys()]
+  local_key = pd.MultiIndex.from_frame(local)
+  foreign_key = pd.MultiIndex.from_frame(df[columns.values()])
   # Pass check if one or more local columns are null
-  valid |= local.isna().any(axis=1)
-  return valid
+  return local_key.isin(foreign_key) | local.isnull().any(axis=1)
 
 @check(
   message='Not found in {table}.{list(columns.values())}',
@@ -112,24 +105,23 @@ def in_foreign_columns(
     >>> df = pd.DataFrame({'x': [0, 0, 1, pd.NA], 'y': [0, 1, 1, 2]})
     >>> dfs = {'table': pd.DataFrame({'x': [0, 0], 'y': [0, 1]})}
     >>> in_foreign_columns(df, dfs, table='table', columns={'x': 'x', 'y': 'y'})
-    0    False
-    1    False
-    2     True
+    0     True
+    1     True
+    2    False
     3     True
     dtype: bool
+    >>> in_foreign_columns(df, dfs, table='table', columns={'y': 'y'})
+    0     True
+    1     True
+    2     True
+    3    False
+    dtype: bool
   """
-  idx = range(len(columns))
-  local = df[columns.keys()].set_axis(idx, axis=1)
-  foreign = dfs[table][columns.values()].set_axis(idx, axis=1)
-  valid = ~(
-    pd.concat([foreign, local]).
-    duplicated().
-    iloc[len(foreign):]
-  )
-  valid.index = local.index
+  local = df[columns.keys()]
+  local_key = pd.MultiIndex.from_frame(local)
+  foreign_key = pd.MultiIndex.from_frame(dfs[table][columns.values()])
   # Pass check if one or more local columns are null
-  valid |= local.isna().any(axis=1)
-  return valid
+  return local_key.isin(foreign_key) | local.isnull().any(axis=1)
 
 @check(
   message='Columns {list(columns.keys())} do not match {table}.{list(columns.values())} when joined on {join}',
