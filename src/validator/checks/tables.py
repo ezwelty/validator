@@ -9,12 +9,12 @@ def not_empty(dfs: Dict[Hashable, pd.DataFrame]) -> bool:
   return len(dfs) > 0
 
 @check(message='Missing required table', axis='table')
-def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], fill: bool = False, value: pd.DataFrame = pd.DataFrame) -> Dict[Hashable, bool]:
+def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], fill: bool = False) -> Dict[Hashable, bool]:
   for table in tables:
     if table not in dfs:
       if fill:
         # NOTE: Modifies dictionary in place
-        dfs[table] = value
+        dfs[table] = pd.DataFrame()
   return {table: table in dfs for table in tables}
 
 @check(message='Table not one of {tables}', axis='table')
