@@ -32,7 +32,7 @@ def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: b
     for i, column in enumerate(columns):
       if column in df:
         s = df.pop(column)
-        df.insert(i, column, s)
+        df.insert(len(df) if i > len(df) else i, column, s)
   actual = [column for column in df if column in columns]
   expected = [column for column in columns if column in df]
   return actual == expected
