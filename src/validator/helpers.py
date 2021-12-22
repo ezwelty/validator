@@ -86,3 +86,17 @@ def filter_kwargs(fn: Callable, *args: Any, **kwargs: Any) -> Callable:
   if not has_kwargs:
     kwargs = {key: kwargs[key] for key in kwargs if key in params}
   return fn(*args, **kwargs)
+
+def stringify(x: Any) -> str:
+  """
+  Format object for use in a string.
+
+  Examples:
+    >>> stringify(123)
+    '123'
+    >>> stringify('123')
+    "'123'"
+  """
+  if isinstance(x, str):
+    return f"'{x}'"
+  return str(x)

@@ -1,9 +1,53 @@
-from typing import Any, Hashable, List, Union
+from abc import ABC, abstractmethod
+from typing import Any, Hashable, List
 
-from .helpers import Scope
+from .helpers import Scope, stringify
 
 
-class Column:
+class Target(ABC):
+
+  @classmethod
+  def create(cls, **kwargs) -> 'Target':
+    """
+    Examples:
+      >>> Target.create()
+      Tables()
+      >>> Target.create(table='A')
+      Table('A')
+      >>> Target.create(column='a')
+      Column('a')
+    """
+    if 'column' in kwargs:
+      return Column(**kwargs)
+    if 'table' in kwargs:
+      return Table(**kwargs)
+    return Tables(**kwargs)
+
+  @property
+  @abstractmethod
+  def scope(self) -> Scope:
+    pass
+
+  @property
+  @abstractmethod
+  def scopes(self) -> List[Scope]:
+    pass
+
+  @abstractmethod
+  def includes(self, other: 'Target') -> bool:
+    pass
+
+  def __repr__(self) -> str:
+    args = []
+    for i, (key, value) in enumerate(self.__dict__.items()):
+      value = stringify(value)
+      if i > 0:
+        value = f'{key}={value}'
+      args.append(value)
+    return f"{self.__class__.__name__}({', '.join(args)})"
+
+
+class Column(Target):
 
   def __init__(self, column: Hashable = None, table: Hashable = None) -> None:
     if column is None and table is not None:
@@ -24,19 +68,11 @@ class Column:
       scopes.append('tables')
     return scopes
 
-  def __repr__(self) -> str:
-    args = ''
-    if self.column is not None:
-      args += f'{self.column}'
-    if self.table is not None:
-      args += f', table={self.table}'
-    return f'Column({args})'
-
   def includes(self, other: Any) -> bool:
     return isinstance(other, Column) and self.__dict__ == other.__dict__
 
 
-class Table:
+class Table(Target):
 
   def __init__(self, table: Hashable = None) -> None:
     self.table = table
@@ -52,10 +88,6 @@ class Table:
       scopes.append('tables')
     return scopes
 
-  def __repr__(self) -> str:
-    args = '' if self.table is None else self.table
-    return f'Table({args})'
-
   def includes(self, other: Any) -> bool:
     return (
       (isinstance(other, Column) and self.table == other.table) or
@@ -63,10 +95,7 @@ class Table:
     )
 
 
-class Tables:
-
-  def __init__(self) -> None:
-    pass
+class Tables(Target):
 
   @property
   def scope(self) -> Scope:
@@ -76,13 +105,8 @@ class Tables:
   def scopes(self) -> List[Scope]:
     return [self.scope]
 
-  def __repr__(self) -> str:
-    return 'Tables()'
-
   def includes(self, other: Any) -> bool:
     return (
       (isinstance(other, (Column, Table)) and other.table is not None) or
       (isinstance(other, Tables) and self.__dict__ == other.__dict__)
     )
-
-Target = Union[Column, Table, Tables]
