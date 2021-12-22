@@ -21,11 +21,11 @@ def date_exists(s: pd.Series) -> pd.Series:
   valid.loc[is_date.index] = parsed.notnull()
   return valid
 
-@check(message='Winter balance is negative', severity='warning')
+@check(message='Winter balance is negative', tag='warning')
 def winter_balance_is_positive(s: pd.Series) -> pd.Series:
   return s.ge(0)
 
-@check(message='Summer balance is positive', severity='warning')
+@check(message='Summer balance is positive', tag='warning')
 def summer_balance_is_negative(s: pd.Series) -> pd.Series:
   return s.le(0)
 
@@ -41,13 +41,13 @@ def null_if_column_null(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> 
 def less_than_or_equal_to_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
   return s.le(df[column])
 
-@check(message='Not within {round(100 * tolerance)}% of thickness change estimated from VOLUME_CHANGE, AREA, and AREA_CHANGE', severity='warning')
+@check(message='Not within {round(100 * tolerance)}% of thickness change estimated from VOLUME_CHANGE, AREA, and AREA_CHANGE', tag='warning')
 def consistent_with_estimated_thickness_change(s: pd.DataFrame, df: pd.DataFrame, *, tolerance: float = 0.0) -> pd.Series:
   actual = s / 1e3
   predicted = df['VOLUME_CHANGE'] * 1e3 / (df['AREA'] * 1e6 - 0.5 * df['AREA_CHANGE'] * 1e3)
   return abs(actual - predicted) / actual < abs(tolerance)
 
-@check(message='Glacier-wide ANNUAL_BALANCE not within {round(100 * tolerance)}% of estimate from bands ANNUAL_BALANCE and AREA', severity='warning')
+@check(message='Glacier-wide ANNUAL_BALANCE not within {round(100 * tolerance)}% of estimate from bands ANNUAL_BALANCE and AREA', tag='warning')
 def glacier_and_band_balance_are_consistent(df: pd.DataFrame, *, tolerance: float = 0.0) -> pd.Series:
 
   # TODO: Custom error messages based on failure type?

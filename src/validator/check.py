@@ -107,7 +107,7 @@ class Check:
     requires: Union[Column, Table, Sequence[Union[Column, Table]]] = None,
     message: str = None,
     name: str = None,
-    severity: Literal['error', 'warning'] = 'error',
+    tag: Any = None,
     axis: Literal['row', 'column', 'table'] = None
   ) -> None:
     parsed = parse_check_function(fn, args=args, kwargs=kwargs)
@@ -116,7 +116,7 @@ class Check:
     self.kwargs: Dict[str, Any] = parsed['kwargs']
     self.message = message
     self.name = name or fn.__name__
-    self.severity = severity
+    self.tag = tag
     if axis is not None:
       if (
         (self.scope == 'tables' and axis not in {'table'}) or
@@ -327,7 +327,7 @@ class Result:
       'row': self.row,
       'value': self.value,
       'check': self.check,
-      'severity': self.check.severity,
+      'tag': self.check.tag,
       'status': self.status,
       'message': self.message
     }
@@ -372,7 +372,7 @@ def check(
   args: Dict[str, Scope] = None,
   message: str = None,
   name: str = None,
-  severity: Literal['error', 'warning'] = 'error',
+  tag: Any = None,
   axis: Literal['row', 'column', 'table'] = None,
   requires: Callable = None
 ) -> Callable:
@@ -395,7 +395,7 @@ def check(
         'args': args,
         'message': message,
         'name': name,
-        'severity': severity,
+        'tag': tag,
         'axis': axis,
         'requires': filter_kwargs(requires, **fn_kwargs) if requires else None,
         **{key: kwargs[key] for key in kwargs if key not in reserved}
