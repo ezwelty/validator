@@ -455,7 +455,7 @@ class Result:
       None
     )
 
-  def as_dict(self) -> dict:
+  def to_dict(self) -> dict:
     return {
       'table': self.table,
       'column': self.column,
@@ -520,8 +520,8 @@ class Report:
   def __repr__(self):
     return f'Report({self.target})'
 
-  def as_df(self, explode: bool = True) -> pd.DataFrame:
-    dicts = [result.as_dict() for result in self.results]
+  def to_df(self, explode: bool = True) -> pd.DataFrame:
+    dicts = [result.to_dict() for result in self.results]
     df = pd.DataFrame(dicts)
     if explode:
       df = df.explode('table').explode('column')
