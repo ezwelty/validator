@@ -1,7 +1,10 @@
 from . import checks, convert
-from .check import Check, Result
+from .checks import register_check
+from .check import Check, Result, check
 from .schema import Column, Table, Tables, Schema
 
 __all__ = [
-  'checks', 'convert', 'Check', 'Result', 'Column', 'Table', 'Tables', 'Schema'
+  'check', 'register_check',
+  'checks', 'convert',
+  'Check', 'Result', 'Column', 'Table', 'Tables', 'Schema'
 ]

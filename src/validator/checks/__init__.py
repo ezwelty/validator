@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Hashable
+from typing import Callable, Dict, Hashable, Sequence
 
 from . import column
 from . import table
@@ -12,20 +12,32 @@ __all__ = [
 
 REGISTRY: Dict[Hashable, Callable] = {}
 
-def register_check(check: Callable, *keys: str) -> None:
+def register_check(fn: Callable = None, *, key: str = None) -> Callable:
   """
   Add a check to the registry.
 
   The check key needs to be a valid module (dot) path,
   since it is also loaded to the `custom` module.
   """
-  key = '.'.join(keys)
-  helpers.set_module_path(key, value=check, root=custom)
-  REGISTRY[key] = check
+  # HACK: Support key as first positional argument
+  if isinstance(fn, str):
+    key = fn
+    fn = None
+  if not key:
+    key = fn.__name__
 
-def get_check(*keys: str) -> Callable:
+  def decorate(fn):
+    helpers.set_module_path(key, value=fn, root=custom)
+    REGISTRY[key] = fn
+    return fn
+
+  if fn:
+    return decorate(fn)
+  return decorate
+
+def get_check(key: str) -> Callable:
   """Retrieve a check by its key."""
-  return REGISTRY['.'.join(keys)]
+  return REGISTRY[key]
 
 for name, module in [('column', column), ('table', table), ('tables', table)]:
   REGISTRY.update({
