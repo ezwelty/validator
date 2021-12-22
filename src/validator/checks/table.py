@@ -175,34 +175,3 @@ def matches_foreign_columns(
   ]
   refs = joined[ref_columns].rename(columns={v: k for k, v in columns.items()})
   return (df[[*columns]] == refs).all(axis=1)
-
-
-# def escape_column_names(expression: str, df: pd.DataFrame) -> str:
-#   name = '|'.join([name for name in df.columns])
-#   return re.sub(f'(^|[^`])({name})($|[^`])', r'\1`\2`\3', expression)
-
-
-# @relation_check("Row does not conform to expression '{params[expression]}' when tables are joined on {params[join]}")
-# def join_expression(dfs: Dict[str, pd.DataFrame], expression: str, join: Dict[str, List[str]], how: str = 'left', engine: str = None) -> Dict[str, pd.DataFrame]:
-#   left, right = list(join.keys())[:2]
-#   df = pd.merge(
-#     left=(
-#       dfs[left].
-#       assign(__index__=range(len(dfs[left]))).
-#       rename(columns=lambda name: f'{left}.{name}')
-#     ),
-#     right=(
-#       dfs[right].
-#       assign(__index__=range(len(dfs[right]))).
-#       rename(columns=lambda name: f'{right}.{name}')
-#     ),
-#     how=how,
-#     left_on=[f'{left}.{name}' for name in join[left]],
-#     right_on=[f'{right}.{name}' for name in join[right]]
-#   )
-#   expression = escape_column_names(expression, df)
-#   valid = df.eval(expression, engine=engine)
-#   return {
-#     table: df[f'{table}.__index__'].isnull() | valid
-#     for table in (left, right)
-#   }

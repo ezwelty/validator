@@ -38,17 +38,6 @@ def _flatten_schema(schema: SchemaDict) -> Tuple[FlatSchemaDict, List[str]]:
   def save_check(key: Target, check: Check) -> None:
     if check.scope != key.scope:
       errors.append(f'{prefix} {check}: Check has wrong scope ({check.scope})')
-    # required = [scope for scope, required in check.context.items() if required]
-    # if required:
-    #   required = max_scope(*required)
-    # if required in ('table', 'tables') and isinstance(key, Column) and key.column is None:
-    #   errors.append(
-    #     f"{prefix} {check}: Column name is required since check depends on {required}"
-    #   )
-    # if required == 'tables' and isinstance(key, (Column, Table)) and key.table is None:
-    #   errors.append(
-    #     f"{prefix} {check}: Table name is required since check depends on {required}"
-    #   )
     else:
       flattened[key] = check
 
@@ -105,22 +94,6 @@ class Schema:
     if errors:
       raise ValueError('Invalid schema.\n\n' + '\n'.join(errors))
     self.schema = schema
-    # seen = []
-    # unique_keys = []
-    # for key in flat_schema:
-    #   id = (key.__class__, key.__dict__)
-    #   if id not in seen:
-    #     seen.append(id)
-    #     unique_keys.append(key.__class__(**key.__dict__))
-    # scopes = {'column', 'table', 'tables'}
-    # for key in unique_keys:
-    #   scopes = scopes.intersection(key.scopes)
-    # if not scopes:
-    #   errors.append(
-    #     ('\n\n' if errors else '') +
-    #     ("Keys have incompatible scopes.\n\n") +
-    #     '\n'.join(f'[{key}] {key.scopes}' for key in unique_keys)
-    #   )
 
   def validate(
     self,
@@ -144,25 +117,6 @@ class Schema:
     input = context[target.__class__]
     if copy:
       input = copylib.deepcopy(input)
-    # if column is None and table is None and tables is None:
-    #   raise ValueError('Provide at least one of column, table, or tables')
-    # if target is None:
-    #   if column is not None:
-    #     target = Column()
-    #   elif table is not None:
-    #     target = Table()
-    #   elif tables is not None:
-    #     target = Tables()
-    # if isinstance(target, Column) and column is None:
-    #   raise ValueError(f'Provide a value for {target} (column)')
-    # elif isinstance(target, Table) and table is None:
-    #   raise ValueError(f'Provide a value for {target} (table)')
-    # elif isinstance(target, Tables) and tables is None:
-    #   raise ValueError(f'Provide a value for {target} (tables)')
-    # else:
-    #   raise ValueError(f'Target must be a Column, Table, or Tables')
-
-    # input = context[target.__class__]
     results = {}
     for key, check in _flatten_schema(self.schema)[0].items():
       if not target.includes(key):
@@ -231,27 +185,5 @@ class Schema:
           else:
             tables[key.table][key.column] = result.output
       results[key] = result
-      # Process results
-      # if type(key) is type(target):
-      #   data = input
-      # elif isinstance(key, Column):
-      #   if isinstance(target, Table):
-      #     if key.column not in input:
-      #       results[key] = f'Column {key.column} not in input'
-      #       break
-      #     data = input[key.column]
-      #   elif isinstance(target, Tables):
-      #     if key.table not in input:
-      #       results[key] = f'Table {key.table} not in input'
-      #       break
-      #     if key.column not in input[key.table]:
-      #       results[key] = f'Column {key.column} not in input'
-      #       break
-      #     data = input[key.table][key.column]
-      # elif isinstance(key, Table):
-      #   if key.table not in input[key.table]:
-      #     results[key] = f'Table {key.table} not in input'
-      #     break
-      #   data = input[key.table]
     output = {'column': column, 'table': table, 'tables': tables}[target.scope]
     return Report(results.values(), target=target, input=input, output=output)

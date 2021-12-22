@@ -91,35 +91,11 @@ def parse_check_function(
   ]
   if missing:
     raise ValueError(f"Missing required keyword arguments {missing}.")
-  # Return
-  # TODO: Inspect Tuple argument types
-  # TODO: Inspect other return types
-  # return_type = signature.return_annotation
-  # if return_type is inspect._empty:
-  #   if transform is None:
-  #     raise ValueError(
-  #       f"Could not determine whether {fn} returns a new value of its input."
-  #       " Supply transform (True or False) or add a return type annotation."
-  #     )
-  # else:
-  #   if return_type is tuple or typing.get_origin(return_type) is tuple:
-  #     if transform is False:
-  #       raise ValueError(
-  #         f"Supplied transform=False but {fn} returns a tuple"
-  #       )
-  #     transform = True
-  #   else:
-  #     if transform is True:
-  #       raise ValueError(
-  #         f"Supplied transform=True but {fn} does not return a tuple"
-  #       )
-  #     transform = False
   return {"args": args, "kwargs": kwargs}
 
 Value = Union[pd.Series, pd.DataFrame, Dict[Hashable, pd.DataFrame]]
 ParentValue = Union[pd.DataFrame, Dict[Hashable, pd.DataFrame]]
 Valid = Union[bool, pd.Series]
-# CheckContext = Union[pd.DataFrame, Dict[Hashable, pd.DataFrame]]
 
 class Check:
 
@@ -134,7 +110,6 @@ class Check:
     severity: Literal['error', 'warning'] = 'error',
     axis: Literal['row', 'column', 'table'] = None
   ) -> None:
-    # TODO: Check that requires= is consistent with positional arguments
     parsed = parse_check_function(fn, args=args, kwargs=kwargs)
     self.fn = fn
     self.args: Dict[str, Scope] = parsed['args']
@@ -248,116 +223,6 @@ class Check:
       )
     return Result(self, target=target, valid=valid, input=value, output=output)
 
-  # def __call__(
-  #   self,
-  #   value: CheckValue,
-  #   **context: CheckContext
-  # ) -> Union[CheckResult, Tuple[CheckResult, CheckValue]]:
-  #   # TODO: Check input type against check type
-  #   sig = inspect.signature(self.fn)
-  #   params = sig.parameters
-  #   context_args = [
-  #     context[name] for name, param in list(params.items())[1:]
-  #     if param.kind == param.POSITIONAL_OR_KEYWORD
-  #     and name in context
-  #   ]
-  #   return self.fn(value, *context_args, **self.kwargs)
-
-  # def _column(self, s: pd.Series, df: pd.DataFrame = None, dfs: Dict[Hashable, pd.DataFrame] = None) -> tuple[CheckResult, pd.Series]:
-  #   # Check argument types
-  #   assert isinstance(s, pd.Series)
-  #   assert df is None or isinstance(df, pd.DataFrame)
-  #   assert dfs is None or (isinstance(dfs, dict) and all(isinstance(x, pd.DataFrame) for x in dfs.values()))
-  #   # Run check
-  #   result = self(s, df=df, dfs=dfs)
-  #   # Parse and check result type
-  #   if isinstance(result, tuple):
-  #     valid, output = result
-  #     # TODO: Allow output=None
-  #     assert isinstance(output, pd.Series) and output.index.equals(s.index)
-  #   else:
-  #     valid, output = result, s
-  #   assert isinstance(valid, (bool, pd.Series))
-  #   if isinstance(valid, pd.Series):
-  #     assert valid.index.equals(s.index)
-  #     if not pd.api.types.is_bool_dtype(valid):
-  #       try:
-  #         valid = valid.astype('boolean', copy=False)
-  #       except TypeError:
-  #         raise ValueError(f'Result could not be coerced to boolean from type {valid.dtype}')
-  #   # Build report
-  #   report = CheckResult(check=self)
-  #   if isinstance(valid, bool):
-  #     report.passed = valid
-  #     report.values = None if report.passed else s
-  #   else:
-  #     report.passed = valid.all()
-  #     report.values = None if report.passed else s[~valid]
-  #   return report, output
-
-  # def _table(self, df: pd.DataFrame, dfs: Dict[Hashable, pd.DataFrame] = None) -> Tuple[CheckResult, pd.DataFrame]:
-  #   # Check argument types
-  #   assert isinstance(df, pd.DataFrame)
-  #   assert dfs is None or (isinstance(dfs, dict) and all(isinstance(x, pd.DataFrame) for x in dfs.values()))
-  #   # Run check
-  #   result = self(df, dfs=dfs)
-  #   # Parse and check result type
-  #   if isinstance(result, tuple):
-  #     valid, output = result
-  #     # TODO: Allow output=None
-  #     assert isinstance(output, pd.DataFrame) and output.index.equals(df.index)
-  #   else:
-  #     valid, output = result, df
-  #   assert isinstance(valid, (bool, pd.Series))
-  #   if isinstance(valid, pd.Series):
-  #     # TODO: Allow valid indexed by column
-  #     assert valid.index.equals(df.index)
-  #     if not pd.api.types.is_bool_dtype(valid):
-  #       try:
-  #         valid = valid.astype('boolean', copy=False)
-  #       except TypeError:
-  #         raise ValueError(f'Result could not be coerced to boolean from type {valid.dtype}')
-  #   # Build report
-  #   report = CheckResult(check=self)
-  #   if isinstance(valid, bool):
-  #     report.passed = valid
-  #   else:
-  #     report.passed = valid.all()
-  #   return report, output
-
-  # def _tables(self, dfs: Dict[Hashable, pd.DataFrame]) -> Tuple[CheckResult, Dict[Hashable, pd.DataFrame]]:
-  #   # Check argument types
-  #   assert isinstance(dfs, dict) and all(isinstance(x, pd.DataFrame) for x in dfs.values())
-  #   # Run check
-  #   result = self(dfs)
-  #   # Parse and check result type
-  #   if isinstance(result, tuple):
-  #     valid, output = result
-  #     # TODO: Allow output=None
-  #     assert (
-  #       isinstance(output, dict) and
-  #       all(
-  #         isinstance(x, pd.DataFrame) and
-  #         name in dfs and
-  #         x.index.equals(dfs[name].index)
-  #         for name, x in output.items()
-  #       )
-  #     )
-  #   else:
-  #     valid, output = result, dfs
-  #   # TODO: Allow valid indexed by table
-  #   assert isinstance(valid, bool)
-  #   # Build report
-  #   return CheckResult(check=self, passed=valid), output
-
-  # @classmethod
-  # def not_null(cls, error: str = 'Missing value', **kwargs) -> 'Check':
-  #   return cls(not_null, error=error, **kwargs)
-
-  # @classmethod
-  # def greater_than_or_equal_to(cls, min: Any, error: str = 'Value < {min}', **kwargs) -> 'Check':
-  #   return cls(greater_than_or_equal_to, min=min, error=error, **kwargs)
-
 
 class Result:
 
@@ -467,41 +332,6 @@ class Result:
       'message': self.message
     }
 
-  # @property
-  # def scope(self) -> str:
-  #   if not self.table:
-  #     return 'tables'
-  #   if not self.columns and not self.rows:
-  #     return 'table'
-  #   if not self.columns:
-  #     return 'rows'
-  #   # NOTE: Currently a single column only past this point
-  #   if not self.rows:
-  #     return 'columns'
-  #   return 'cells'
-
-  # def as_dict(self) -> dict:
-  #   d = {'scope': self.scope, 'check': self.check, 'message': self.message}
-  #   if self.scope != 'tables':
-  #     d['table'] = self.table
-  #   if self.scope in ('rows', 'cells'):
-  #     d['rows'] = self.rows
-  #   if self.scope in ('columns', 'cells'):
-  #     # NOTE: Currently a single column only
-  #     d['columns'] = self.columns
-  #   if self.scope in ('cells'):
-  #     d['values'] = self.values.tolist() if isinstance(self.values, pd.Series) else []
-  #   return d
-
-  # def as_mask(self, df: pd.DataFrame) -> pd.DataFrame:
-  #   assert self.table is not None
-  #   mask = pd.DataFrame(
-  #     data=False, columns=df.columns, index=df.index, dtype='boolean'
-  #   )
-  #   rows = self.rows or slice(None)
-  #   columns = self.columns or slice(None)
-  #   mask.loc[rows, columns] = True
-  #   return mask
 
 class Report:
 
@@ -531,30 +361,7 @@ class Report:
         df[mask].explode('row')
       ])
       df.sort_index(inplace=True)
-    # df = df.convert_dtypes()
-    # df = df.mask(df.applymap(lambda x: x is None), '')
-    # df = df[df['status'] != 'pass']
-    # print(tabulate.tabulate(df, headers='keys', showindex=False, tablefmt='github'))
     return df
-
-# class CheckResults:
-
-#   def __init__(self, results: List[Result]) -> None:
-#     self.results = results
-
-#   def as_message_grid(self, table: str, df: pd.DataFrame) -> pd.DataFrame:
-#     # TODO: Rewrite with numpy
-#     grid = pd.DataFrame(
-#       data='', columns=df.columns, index=df.index, dtype='string'
-#     )
-#     for result in self.results:
-#       if result.table == table and result.scope == 'cells' and result.message:
-#         mask = result.as_mask(df)
-#         grid = grid.mask(mask, grid + f'* {result.message}\n')
-#     return grid.mask(grid == '', pd.NA)
-
-
-# https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html
 
 
 # ---- Register checks ----
@@ -571,7 +378,6 @@ def check(
 ) -> Callable:
 
   def wrapper(fn: Callable):
-    # parameters = [Parameter('cls', kind=Parameter.POSITIONAL_OR_KEYWORD)]
     parameters = []
     reserved = []
     for param in inspect.signature(fn).parameters.values():
@@ -596,58 +402,8 @@ def check(
       }
       return Check(fn, kwargs=fn_kwargs, **cls_kwargs)
 
-    # method_name = name or fn.__name__
-    # if hasattr(Check, method_name):
-    #   raise ValueError(f'Check already has an attribute named {method_name}')
-    # setattr(Check, method_name, classmethod(method))
     return method
 
   if fn is None:
     return wrapper
   return wrapper(fn)
-
-
-# def check(fn: Callable = None, *, name: str = None, error: str = None) -> Callable:
-
-#   def wrapper(fn: Callable):
-#     # TODO: Test fn has compatible parameters
-#     parameters = [
-#       Parameter('cls', kind=Parameter.POSITIONAL_OR_KEYWORD),
-#       *[
-#         param for param in inspect.signature(fn).parameters.values()
-#         if param.kind == Parameter.KEYWORD_ONLY
-#       ],
-#       Parameter(
-#         'name', kind=Parameter.KEYWORD_ONLY, default=name, annotation=str
-#       ),
-#       Parameter(
-#         'error', kind=Parameter.KEYWORD_ONLY, default=error, annotation=str
-#       )
-#     ]
-#     sig = Signature(parameters, return_annotation=Check)
-
-#     # TODO: Augment docstring
-#     @makefun.with_signature(sig, func_name=fn.__name__, doc=fn.__doc__)
-#     def method(cls, name: str = None, error: str = None, **kwargs) -> Check:
-#       return cls(
-#         fn,
-#         name=name or fn.__name__,
-#         error=error,
-#         **kwargs
-#       )
-
-#     method_name = name or fn.__name__
-#     if hasattr(Check, method_name):
-#       raise ValueError(f'Check already has an attribute named {method_name}')
-#     setattr(Check, method_name, classmethod(method))
-#     return fn
-
-#   if fn is None:
-#     return wrapper
-#   return wrapper(fn)
-
-
-# class CheckError(Exception):
-
-#   def __init__(self, message: str) -> None:
-#       super().__init__(message)
