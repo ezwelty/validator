@@ -54,6 +54,7 @@ def set_module_path(path: str, value: Any, root: types.ModuleType) -> Any:
   names = path.split('.')
   # Dry run
   node = root
+  i = 0
   for i, name in enumerate(names[:-1]):
     if hasattr(node, name):
       if not isinstance(getattr(node, name), types.ModuleType):
