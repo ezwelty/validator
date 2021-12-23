@@ -20,8 +20,27 @@ def unique(s: pd.Series) -> pd.Series:
 
 @check(message='Value not in {values}')
 def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:
-  """Check whether values are in a set of allowed values."""
-  return s.isin(values) | s.isnull()
+  """
+  Check whether values are in a set of allowed values.
+
+  Examples:
+    >>> s = pd.Series([1, 2, None], dtype='float')
+    >>> in_list(s, values=[1])
+    0     True
+    1    False
+    2     <NA>
+    dtype: boolean
+    >>> s = pd.Series([1, 2, None], dtype='Int64')
+    >>> in_list(s, values=[1])
+    0     True
+    1    False
+    2     <NA>
+    dtype: boolean
+  """
+  valid = pd.Series(dtype='boolean', index=s.index)
+  not_null = s.notnull()
+  valid[not_null] = s[not_null].isin(values)
+  return valid
 
 @check(message='Value < {min}')
 def greater_than_or_equal_to(s: pd.Series, *, min: Any) -> pd.Series:
