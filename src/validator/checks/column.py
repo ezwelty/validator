@@ -73,7 +73,7 @@ def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
 
 @check(
   message='Not found in {column}',
-  requires=lambda column: Column(column)
+  requires=lambda column: [Column(column)]
 )
 def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
   """Check whether values exist in another column."""
@@ -82,7 +82,7 @@ def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
 
 @check(
   message='Not found in {table}.{column}',
-  requires=lambda table, column: Column(column, table=table)
+  requires=lambda table, column: [Column(column, table=table)]
 )
 def in_foreign_column(
   s: pd.Series,

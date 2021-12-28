@@ -104,7 +104,7 @@ class Check:
     fn: Callable,
     args: Dict[str, Scope] = None,
     kwargs: Dict[str, Any] = None,
-    requires: Union[Column, Table, Sequence[Union[Column, Table]]] = None,
+    requires: List[Union[Column, Table]] = None,
     message: str = None,
     name: str = None,
     tag: Any = None,
@@ -117,6 +117,7 @@ class Check:
     self.message = message
     self.name = name or fn.__name__
     self.tag = tag
+    # Check axis
     if axis is not None:
       if (
         (self.scope == 'tables' and axis not in {'table'}) or
@@ -126,12 +127,7 @@ class Check:
         raise ValueError(f'Unsupported axis {axis} for {self.scope} check')
     self.axis = axis or ('table' if self.scope == 'tables' else 'row')
     # Requires
-    if requires is None:
-      requires = []
-    elif isinstance(requires, (Column, Table)):
-      requires = [requires]
-    else:
-      requires = list(requires)
+    requires = requires or []
     for r in requires:
       if (
         isinstance(r, Tables) or
@@ -148,7 +144,7 @@ class Check:
           raise ValueError(f'Cannot require {r} without a table argument')
         elif r.table is not None and not self.scopes.get('tables', False):
           raise ValueError(f'Cannot require {r} without a tables argument')
-    self.requires: List[Union[Column, Table]] = requires
+    self.requires = requires
 
   @property
   def scope(self) -> Scope:
