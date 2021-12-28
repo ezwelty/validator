@@ -119,6 +119,7 @@ class Schema:
       input = copylib.deepcopy(input)
     results = {}
     for key, check in _flatten_schema(self.schema)[0].items():
+      print(f'[{key}] {check}')
       if not target.includes(key):
         continue
       # Load data for check

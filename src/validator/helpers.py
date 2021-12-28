@@ -2,9 +2,9 @@ import inspect
 import keyword
 import types
 import typing
-from typing import Any, Callable, Dict, List, Literal
+from typing import Any, Callable, Dict, Iterable, List, Literal
 
-
+Axis = Literal['row', 'column', 'table']
 Scope = Literal['column', 'table', 'tables']
 ARGUMENT_SCOPES: Dict[str, Scope] = {
   's': 'column',
@@ -100,3 +100,26 @@ def stringify(x: Any) -> str:
   if isinstance(x, str):
     return f"'{x}'"
   return str(x)
+
+def sort_partial(values: Iterable, order: Iterable) -> list:
+  """
+  Sort some list elements, leaving others in place.
+
+  Examples:
+    >>> sort_partial(['y', 'z', 'x'], order=['x', 'y', 'z'])
+    ['x', 'y', 'z']
+    >>> sort_partial(['y', 'z', 'x'], order=['x', 'z'])
+    ['y', 'x', 'z']
+    >>> sort_partial(['y', 'z', 'x'], order=['x'])
+    ['y', 'z', 'x']
+    >>> sort_partial(['y', 'z', 'x'], order=['x', 'a', 'y'])
+    ['x', 'z', 'y']
+  """
+  result = list(values)
+  order = [x for x in order if x in values]
+  position = 0
+  for i, value in enumerate(values):
+    if value in order:
+      result[i] = order[position]
+      position += 1
+  return result

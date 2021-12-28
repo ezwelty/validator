@@ -4,6 +4,7 @@ import pandas as pd
 
 from ..check import check
 from ..targets import Column
+from ..helpers import sort_partial
 
 @check(message='Has no rows')
 def not_empty(df: pd.DataFrame) -> bool:
@@ -25,17 +26,31 @@ def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: boo
     df.drop(columns=extras, inplace=True)
   return {column: column in columns for column in df}
 
-@check(message='Columns do not follow order {columns}')
+@check(message='Column does not follow order {columns}', axis='column')
 def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
+  """
+  Check whether column names are sorted.
+
+  Args:
+    columns: Sorted column names.
+    sort: Whether to sort table columns to match `columns`.
+      Columns not named in `columns` are ignored and left in place.
+
+  Examples:
+    >>> df = pd.DataFrame(columns=['y', 'z', 'x'])
+    >>> has_sorted_columns(df, columns=['x', 'z'])
+    {'y': True, 'z': False, 'x': False}
+    >>> has_sorted_columns(df, columns=['x', 'z'], sort=True)
+    >>> list(df)
+    ['y', 'x', 'z']
+  """
+  ordered = sort_partial(list(df), order=columns)
   if sort:
     # NOTE: Modifies dataframe in place
-    for i, column in enumerate(columns):
-      if column in df:
-        s = df.pop(column)
-        df.insert(len(df) if i > len(df) else i, column, s)
-  actual = [column for column in df if column in columns]
-  expected = [column for column in columns if column in df]
-  return actual == expected
+    for i, column in enumerate(ordered):
+      s = df.pop(column)
+      df.insert(i, column, s)
+  return {column: column == ordered[i] for i, column in enumerate(df)}
 
 @check(
   message='Duplicate combination of columns {columns}',
