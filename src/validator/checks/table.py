@@ -1,16 +1,16 @@
-from typing import Any, Dict, Hashable, List, Sequence, Union
+from typing import Any, Dict, Hashable, Sequence
 
 import pandas as pd
 
-from ..check import check
+from ..check import register_check
 from ..targets import Column
 from ..helpers import sort_partial
 
-@check(message='Has no rows')
+@register_check(name='table_not_empty', message='Has no rows')
 def not_empty(df: pd.DataFrame) -> bool:
   return not df.empty
 
-@check(message='Missing required column', axis='column')
+@register_check(message='Missing required column', axis='column')
 def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False, value: Any = pd.NA, dtype: str = None) -> Dict[Hashable, bool]:
   for column in columns:
     if column not in df and fill:
@@ -18,7 +18,7 @@ def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = F
       df[column] = pd.Series(value, dtype=dtype, index=df.index)
   return {column: column in df for column in columns}
 
-@check(message='Column not one of {columns}', axis='column')
+@register_check(message='Column not one of {columns}', axis='column')
 def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: bool = False) -> Dict[Hashable, bool]:
   if drop:
     extras = [column for column in df if column not in columns]
@@ -26,7 +26,7 @@ def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: boo
     df.drop(columns=extras, inplace=True)
   return {column: column in columns for column in df}
 
-@check(message='Column does not follow order {columns}', axis='column')
+@register_check(message='Column does not follow order {columns}', axis='column')
 def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
   """
   Check whether column names are sorted.
@@ -41,6 +41,7 @@ def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: b
     >>> has_sorted_columns(df, columns=['x', 'z'])
     {'y': True, 'z': False, 'x': False}
     >>> has_sorted_columns(df, columns=['x', 'z'], sort=True)
+    {'y': True, 'x': True, 'z': True}
     >>> list(df)
     ['y', 'x', 'z']
   """
@@ -52,9 +53,9 @@ def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: b
       df.insert(i, column, s)
   return {column: column == ordered[i] for i, column in enumerate(df)}
 
-@check(
+@register_check(
   message='Duplicate combination of columns {columns}',
-  requires=lambda columns: [Column(column) for column in columns]
+  required=lambda columns: [Column(column) for column in columns]
 )
 def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.Series:
   """
@@ -79,9 +80,9 @@ def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.S
   """
   return ~df.duplicated(subset=columns, keep=False)
 
-@check(
+@register_check(
   message='Not found in {list(columns.values)}',
-  requires=lambda columns: [Column(column) for column in [*columns, *columns.values()]]
+  required=lambda columns: [Column(column) for column in [*columns, *columns.values()]]
 )
 def in_columns(df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]) -> pd.Series:
   """
@@ -95,9 +96,12 @@ def in_columns(df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]) -> pd.Ser
   # Pass check if one or more local columns are null
   return local_key.isin(foreign_key) | local.isnull().any(axis=1)
 
-@check(
+@register_check(
   message='Not found in {table}.{list(columns.values())}',
-  requires=lambda table, columns: [Column(column) for column in columns] + [Column(column, table=table) for column in columns.values()]
+  required=lambda table, columns: (
+    [Column(column) for column in columns] +
+    [Column(column, table=table) for column in columns.values()]
+  )
 )
 def in_foreign_columns(
   df: pd.DataFrame,
@@ -138,9 +142,12 @@ def in_foreign_columns(
   # Pass check if one or more local columns are null
   return local_key.isin(foreign_key) | local.isnull().any(axis=1)
 
-@check(
+@register_check(
   message='Columns {list(columns.keys())} do not match {table}.{list(columns.values())} when joined on {join}',
-  requires=lambda table, join, columns: [Column(column) for column in [*join, *columns]] + [Column(column, table=table) for column in [*join.values(), *columns.values()]]
+  required=lambda table, join, columns: (
+    [Column(column) for column in [*join, *columns]] +
+    [Column(column, table=table) for column in [*join.values(), *columns.values()]]
+  )
 )
 def matches_foreign_columns(
   df: pd.DataFrame,

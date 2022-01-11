@@ -1,10 +1,11 @@
+# Needed to register checks
 from . import checks, convert
-from .checks import register_check
-from .check import Check, Result, check
-from .schema import Column, Table, Tables, Schema
+from .check import Check, register_check
+from .schema import Schema
+from .targets import Column, Table, Tables
 
 __all__ = [
-  'check', 'register_check',
-  'checks', 'convert',
-  'Check', 'Result', 'Column', 'Table', 'Tables', 'Schema'
+  'Check', 'Schema',
+  'Column', 'Table', 'Tables',
+  'checks', 'convert', 'register_check'
 ]

@@ -1,15 +1,15 @@
-from typing import Dict, Hashable, Sequence, Union
+from typing import Dict, Hashable, Sequence
 
 import pandas as pd
 
-from ..check import check
+from ..check import register_check
 from ..helpers import sort_partial
 
-@check(message='Has no tables')
+@register_check(name='tables_not_empty', message='Has no tables')
 def not_empty(dfs: Dict[Hashable, pd.DataFrame]) -> bool:
   return len(dfs) > 0
 
-@check(message='Missing required table', axis='table')
+@register_check(message='Missing required table')
 def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], fill: bool = False) -> Dict[Hashable, bool]:
   for table in tables:
     if table not in dfs:
@@ -18,7 +18,7 @@ def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable],
         dfs[table] = pd.DataFrame()
   return {table: table in dfs for table in tables}
 
-@check(message='Table not one of {tables}', axis='table')
+@register_check(message='Table not one of {tables}')
 def only_has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], drop: bool = False) -> Dict[Hashable, bool]:
   for table in dfs:
     if table not in tables:
@@ -27,7 +27,7 @@ def only_has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hasha
         del dfs[table]
   return {table: table in tables for table in dfs}
 
-@check(message='Table does not follow order {tables}', axis='table')
+@register_check(message='Table does not follow order {tables}')
 def has_sorted_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
   ordered = sort_partial(list(dfs), order=tables)
   if sort:

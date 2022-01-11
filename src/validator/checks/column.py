@@ -2,23 +2,23 @@ from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple
 
 import pandas as pd
 
-from ..check import check
+from ..check import register_check
 from ..targets import Column
 
 
 # ---- Checks ----
 
-@check(message='Required value is missing')
+@register_check(message='Required value is missing')
 def not_null(s: pd.Series) -> pd.Series:
   """Check whether values are not null."""
   return s.notnull()
 
-@check(message='Duplicate value')
+@register_check(message='Duplicate value')
 def unique(s: pd.Series) -> pd.Series:
   """Check whether values are unique."""
   return ~s.duplicated(keep=False)
 
-@check(message='Value not in {values}')
+@register_check(message='Value not in {values}')
 def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:
   """
   Check whether values are in a set of allowed values.
@@ -42,47 +42,47 @@ def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:
   valid[not_null] = s[not_null].isin(values)
   return valid
 
-@check(message='Value < {min}')
+@register_check(message='Value < {min}')
 def greater_than_or_equal_to(s: pd.Series, *, min: Any) -> pd.Series:
   """Check whether values are greater than or equal to a minimum."""
   return s.ge(min)
 
-@check(message='Value > {max}')
+@register_check(message='Value > {max}')
 def less_than_or_equal_to(s: pd.Series, *, max: Any) -> pd.Series:
   """Check whether values are less than or equal to a maximum."""
   return s.le(max)
 
-@check(message='Length < {min}')
+@register_check(message='Length < {min}')
 def length_greater_than_or_equal_to(s: pd.Series, *, min: int) -> pd.Series:
   """Check whether value lengths are greater than or equal to a minimum."""
   # Supports sequences (string, tuple, list) and collections (dictionary)
   # Conversion to Int64 needed from object input to ensure nulls are ignored
   return s.str.len().astype('Int64', copy=False).ge(min)
 
-@check(message='Length > {max}')
+@register_check(message='Length > {max}')
 def length_less_than_or_equal_to(s: pd.Series, *, max: int) -> pd.Series:
   """Check whether value lengths are less than or equal to a maximum."""
   # Supports sequences (string, tuple, list) and collections (dictionary)
   # Conversion to Int64 needed from object input to ensure nulls are ignored
   return s.str.len().astype('Int64', copy=False).le(max)
 
-@check(message='Value does not match regular expression {regex}')
+@register_check(message='Value does not match regular expression {regex}')
 def matches_regex(s: pd.Series, *, regex: str) -> pd.Series:
   """Check whether values match a regular expression."""
   return s.str.fullmatch(regex).astype('boolean')
 
-@check(
+@register_check(
   message='Not found in {column}',
-  requires=lambda column: [Column(column)]
+  required=lambda column: [Column(column)]
 )
 def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
   """Check whether values exist in another column."""
   other = df[column]
   return s.isin(other) | s.isnull()
 
-@check(
+@register_check(
   message='Not found in {table}.{column}',
-  requires=lambda table, column: [Column(column, table=table)]
+  required=lambda table, column: [Column(column, table=table)]
 )
 def in_foreign_column(
   s: pd.Series,
@@ -113,15 +113,15 @@ def in_foreign_column(
   foreign = dfs[table][column]
   return s.isin(foreign) | s.isnull()
 
-@check(message='Not of type {type}')
+@register_check(message='Not of type {type}')
 def is_type(s: pd.Series, *, type: str) -> bool:
   """Check whether column is of a certain data type."""
   return str(s.dtype) == type
 
+
 # ---- Parsers ----
 
-
-@check(message='Value could not be parsed to type {type}')
+@register_check(message='Value could not be parsed to type {type}')
 def parse_as_type(s: pd.Series, *, type='string', **kwargs: Any) -> Tuple[pd.Series, pd.Series]:
   """
   Parse column as a certain data type.
@@ -223,18 +223,18 @@ def parse_year(s: pd.Series) -> pd.Series:
 
 # ---- Transforms ----
 
-@check
+@register_check
 def string_to_lowercase(s: pd.Series) -> Tuple[bool, pd.Series]:
   return True, s.str.lower()
 
-@check
+@register_check
 def string_to_uppercase(s: pd.Series) -> Tuple[bool, pd.Series]:
   return True, s.str.upper()
 
-@check
+@register_check
 def number_to_integer(s: pd.Series) -> Tuple[bool, pd.Series]:
   return True, s.round().astype('Int64')
 
-@check
+@register_check
 def integer_to_number(s: pd.Series) -> Tuple[bool, pd.Series]:
   return True, s.astype('Float64')

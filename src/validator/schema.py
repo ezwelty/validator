@@ -1,190 +1,485 @@
-# Allow the use of copy= function argument
 import copy as copylib
-from typing import Any, Dict, Hashable, Iterable, List, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
-from .check import Check, Result, Report
-from .targets import Target, Column, Table, Tables
+from .check import Check, Data, Result
+from .helpers import stringify_call, filter_kwargs
+from .targets import Target, Column, Table, Tables, classify_data, extract_data
 
 # ---- Schema helpers ----
 
-SchemaDict = Dict[
-  Target,
-  Union[
-    Check,
-    Iterable[Check],
-    Dict[Union[Column, Table], Union[Check, Iterable[Check]]]
-  ]
-]
+# Recursive type alias supported by Pylance and maybe other type checkers
+SchemaDict = Dict[Target, Union[List[Check], 'SchemaDict']]
 FlatSchemaDict = Dict[Target, Check]
-
-def _flatten_schema(schema: SchemaDict) -> Tuple[FlatSchemaDict, List[str]]:
-  errors = []
-  flattened = {}
-
-  def flatten_value(key: Target, value: Any) -> None:
-    if isinstance(value, Check):
-      save_check(key, value)
-    elif isinstance(value, Iterable):
-      for subvalue in value:
-        if isinstance(subvalue, Check):
-          save_check(copylib.copy(key), subvalue)
-        else:
-          errors.append(f'{prefix} {subvalue}: Not a Check')
-    else:
-      errors.append(f'{prefix} {value}: Not a Check or Iterable[Check]')
-
-  def save_check(key: Target, check: Check) -> None:
-    if check.scope != key.scope:
-      errors.append(f'{prefix} {check}: Check has wrong scope ({check.scope})')
-    else:
-      flattened[key] = check
-
-  for key, value in schema.items():
-    prefix = f'[{key}]'
-    if not isinstance(key, (Column, Table, Tables)):
-      errors.append(f'{prefix} Not a Column, Table, or Tables')
-    elif not isinstance(value, dict):
-      flatten_value(key, value)
-    elif not isinstance(key, Table):
-      errors.append(f'{prefix} Cannot have nested schemas')
-    else:
-      for subkey, subvalue in value.items():
-        prefix = f'[{key}] [{subkey}]'
-        if isinstance(subkey, Table):
-          if subkey.table is not None and subkey != key.table:
-            errors.append(f'{prefix} Cannot nest schema for {subkey} in {key}')
-          else:
-            flatten_value(Table(key.table), subvalue)
-        elif not isinstance(subkey, Column):
-          errors.append(f'{prefix} Cannot be a nested schema')
-        elif isinstance(subvalue, dict):
-          errors.append(f'{prefix} Cannot have nested schemas')
-        else:
-          try:
-            column_key = Column(subkey.column, table=key.table)
-          except ValueError as error:
-            errors.append(f'{prefix} {error}')
-            continue
-          flatten_value(column_key, subvalue)
-  return flattened, errors
-
 
 # ---- Schema ----
 
 class Schema:
   """
-  Schema({
-    Tables(): [*checks],
-    Table('A'): [*checks],
-    Table('A'): {
-      Column('a'): Check,
-      Column('b'): [*checks]
-    },
-    Column('a', table='A'): [*checks]
-  })
+  Tests and transforms tabular data following an ordered sequence of checks.
+
+  Parameters
+  ----------
+  schema
+    Schema definition as a dictionary, where each key is a :class:`Target`
+    and each value is either a :type:`list` of :class:`Check` or a dictionary
+    of subschemas. Since each :class:`Target` instance is unique,
+    they can repeated at will (e.g. `{Column(): [], Column(): []}`).
+
+    Any nesting is allowed, with two exceptions:
+    - The target column or table name cannot be changed once set. For example,
+    `{Table('X'): {Table('X'): []}}` and `{Table('X'): {Table(): []}}`
+    are valid (`Table()` inherits the table name from `Table('x')`), but
+    `{Table('X'): {Table('Y'): []}}` is not.
+    - Unnamed columns cannot be nested under named tables. For example,
+    `{Table('X'): {Column('Y'): []}}` is valid but
+    `{Table('X'): {Column(): []}}` is not.
+
+  Raises
+  ------
+  ValueError
+    Invalid schema (with a detailed list of errors).
   """
   def __init__(self, schema: SchemaDict) -> None:
     if not isinstance(schema, dict):
       raise TypeError(f'Schema must be a dictionary, not a {type(schema)}')
-    if not schema:
-      raise ValueError(f'Schema cannot be empty')
-    _, errors = _flatten_schema(schema)
+    self.schema = schema
+    self._flatten()
+
+  def __repr__(self) -> str:
+    return stringify_call(self.__class__.__name__, self.schema)
+
+  def _flatten(self) -> FlatSchemaDict:
+    """
+    Flatten schema.
+
+    Examples
+    --------
+    >>> schema = Schema({
+    ...   Table('X'): {
+    ...     Table(): [Check(lambda df: 'x' in df, name='has_x')],
+    ...     Column('x'): [Check(lambda s: s.notnull(), name='x_not_null')]
+    ...   }
+    ... })
+    >>> schema._flatten()
+    {Table('X'): Check.has_x(), Column('x', table='X'): Check.x_not_null()}
+    """
+    errors = []
+    flat = {}
+
+    def traverse(
+      schema: SchemaDict,
+      baseprefix: str = '',
+      basenames: dict = {}
+    ) -> None:
+      for key, value in schema.items():
+        prefix = f'{baseprefix}.{key}'
+        # Check class of dictionary key
+        if not isinstance(key, Target):
+          errors.append(f'{prefix}: Not a target (Column, Table, or Tables)')
+          continue
+        # Check that table and column names are not changed if already set
+        key_names = {k: v for k, v in key.__dict__.items() if v is not None}
+        name_changes = {
+          basenames[k]: v for k, v in key_names.items()
+          if basenames.get(k) is not None and v != basenames[k]
+        }
+        if name_changes:
+          errors.append(f'{prefix}: Changes target names {name_changes}')
+          continue
+        names = {**basenames, **key_names}
+        # Check valid names
+        try:
+          flat_key = filter_kwargs(type(key), **names)
+        except ValueError as error:
+          errors.append(f'{prefix}: {error}')
+          continue
+        # Parse dictionary value
+        if isinstance(value, list):
+          for i, check in enumerate(value):
+            if isinstance(check, Check):
+              cls = list(check.inputs.values())[0]
+              if cls is not type(key):
+                errors.append(
+                  f'{prefix}[{i}]: Check has wrong target class ({cls})'
+                )
+              else:
+                flat[flat_key.copy()] = check
+            else:
+              errors.append(f'{prefix}[{i}]: Expected Check, not {type(check)}')
+        elif isinstance(value, dict):
+          traverse(value, baseprefix=prefix, basenames=names)
+        else:
+          errors.append(f'{prefix}: Expected list or dict, not {type(value)}')
+
+    traverse(self.schema)
     if errors:
       raise ValueError('Invalid schema.\n\n' + '\n'.join(errors))
-    self.schema = schema
+    return flat
 
-  def validate(
+  def _squeeze(self, n: int = 1) -> 'Schema':
+    """
+    Squeeze redundancy out of a schema.
+
+    Examples
+    --------
+    >>> schema = Schema({
+    ...   Table('x'): {
+    ...     Table(): [],
+    ...     Table(): [Check.has_columns(['x'])]
+    ...   },
+    ...   Table('x'): {
+    ...     Column('x'): [Check.not_null()],
+    ...     Column('x'): [Check.unique()]
+    ...   }
+    ... })
+    >>> schema._squeeze()
+    Schema({Table('x'):
+        [Check.has_columns(columns=['x'], fill=False, value=<NA>, dtype=None)],
+      Table('x'):
+        {Column('x'):
+          [Check.not_null(), Check.unique()]}})
+    """
+    # Drop keys with no checks
+    def drop_empty(obj: SchemaDict) -> None:
+      drop = []
+      for key, value in obj.items():
+        if not value:
+          drop.append(key)
+        elif isinstance(value, dict):
+          drop_empty(value)
+      for key in drop:
+        del obj[key]
+    # Merge checks of equal sequential keys
+    def merge_equal_siblings(obj: SchemaDict) -> SchemaDict:
+      base = None
+      drop = []
+      for key, value in obj.items():
+        if isinstance(value, dict):
+          obj[key] = merge_equal_siblings(value)
+        else:
+          if base is None or not base.equals(key):
+            base = key
+          elif base and not isinstance(value, dict):
+            obj[base] += value
+            drop.append(key)
+      for key in drop:
+        del obj[key]
+      return obj
+    # Unwrap subschema if single key and same class as key
+    def unwrap_singletons(obj: SchemaDict, base: Target = None) -> SchemaDict:
+      if len(obj) == 1:
+        key = list(obj.keys())[0]
+        if type(key) is type(base):
+          value = obj[key]
+          if isinstance(value, dict):
+            return unwrap_singletons(value, base=base)
+          return value
+      for key, value in obj.items():
+        if isinstance(value, dict):
+          obj[key] = unwrap_singletons(value, base=key)
+      return obj
+    for _ in range(n):
+      drop_empty(self.schema)
+      merge_equal_siblings(self.schema)
+      unwrap_singletons(self.schema)
+    return self
+
+  def __call__(
     self,
-    column: pd.Series = None,
-    table: pd.DataFrame = None,
-    tables: Dict[Hashable, pd.DataFrame] = None,
-    *,
+    data: Data = None,
+    name: Target = None,
     target: Target = None,
     copy: bool = True
-  ) -> List[Result]:
-    context = {Column: column, Table: table, Tables: tables}
-    if all(value is None for value in context.values()):
-      raise ValueError('Provide at least one of column, table, or tables')
-    if target and not isinstance(target, tuple(context)):
-      raise ValueError(f'Target must an instance of Column, Table, or Tables')
-    for cls, value in context.items():
-      if value is not None and target is None:
-        target = cls()
-      elif value is None and isinstance(target, cls):
-        raise ValueError(f'Provide a value for {target} ({cls.__name__.lower()})')
-    input = context[target.__class__]
+  ) -> 'Report':
+    """
+    Run the checks on the provided tabular data.
+
+    Executes each applicable check and wraps the results in a :class:`Report`.
+
+    Parameters
+    ----------
+    data
+      Tabular data.
+    name
+      Class and name of `data` (e.g. `Column('x')`).
+      If not provided, attempts to guess the class based on the type of `data`
+      (e.g. `Table()` for :class:`pandas.DataFrame`).
+    target
+      Name of the tabular element to check. Defaults to `name`.
+      If provided, must be a child of `name` (e.g. `Column('x')` in `Table()`).
+    copy
+      Whether to process a (deep) copy of `data`.
+      If any checks transform their input,
+      this ensures that the changes do not propagate to the original `data`.
+
+    Examples
+    --------
+    >>> s = pd.Series([0, 1])
+    >>> check = Check(lambda s: s.isin({0, 1}))
+    >>> schema = Schema({Column(): [check]})
+    >>> schema(s).counts
+    {'pass': 1}
+
+    >>> df = pd.DataFrame({'x': s})
+    >>> schema(df, target=Column('x')).counts
+    {}
+    >>> schema = Schema({Column('x'): [check]})
+    >>> schema(df).counts
+    {'pass': 1}
+
+    >>> schema = Schema({Column('y'): [check]})
+    >>> schema(df).results[0].message
+    "Missing required inputs [Column('y')]"
+    """
     if copy:
-      input = copylib.deepcopy(input)
+      data = copylib.deepcopy(data)
+    inputs = extract_data(data, name=name, target=target)
+    name = name or classify_data(data)()
+    target = target or name
+    input = inputs[type(target)]
     results = {}
-    for key, check in _flatten_schema(self.schema)[0].items():
-      print(f'[{key}] {check}')
-      if not target.includes(key):
+    for key, check in self._flatten().items():
+      # print(f'{key}: {check}')
+      if not (key.equals(target) or key in target):
         continue
       # Load data for check
-      args = {'column': column, 'table': table, 'tables': tables}
-      if isinstance(target, Tables) and not isinstance(key, Tables):
-        if not key.table in args['tables']:
-          message = f'Table {key.table} not in tables'
-          results[key] = Result(check, target=key, skip=message)
+      args = inputs.copy()
+      if isinstance(target, Tables) and isinstance(key, (Table, Column)):
+        if not key.table in args[Tables]:
+          # Table {key.table} not in tables
+          results[key] = Result(check, target=key, missing=[Table(key.table)])
           continue
-        args['table'] = args['tables'][key.table]
-      if isinstance(target, (Table, Tables)) and isinstance(key, Column):
-        if not key.column in args['table']:
-          table_str = '' if key.table is None else f' {key.table}'
-          message = f'Column {key.column} not in table{table_str}'
-          results[key] = Result(check, target=key, skip=message)
+        args[Table] = args[Tables][key.table]
+      if isinstance(target, (Tables, Table)) and isinstance(key, Column):
+        if not key.column in args[Table]:
+          # Column {key.column} not in table {key.table}
+          results[key] = Result(
+            check, target=key, missing=[Column(key.column, table=key.table)]
+          )
           continue
-        args['column'] = args['table'][key.column]
-      # Check completeness of positional arguments
-      missing = [
-        scope for scope, required in check.scopes.items()
-        if required and args[scope] is None
-      ]
-      if missing:
-        message = f'Required inputs {missing} not provided'
-        results[key] = Result(check, target=key, skip=message)
-        continue
-      # Check presence of explicit requirements
-      for xtarget in check.requires:
-        # NOTE: Assume only table or column
-        if xtarget.table is not None and xtarget.table not in args['tables']:
-          missing.append(xtarget)
-        elif isinstance(xtarget, Column):
-          # NOTE: Assume column is named
-          if xtarget.table is None:
-            if xtarget.column not in args['table']:
-              missing.append(xtarget)
-          elif xtarget.column not in args['tables'][xtarget.table]:
-            missing.append(xtarget)
-      if missing:
-        message = f'Required inputs {missing} not found'
-        results[key] = Result(check, target=key, skip=message)
-        continue
+        args[Column] = args[Table][key.column]
       # Run check
-      result = check(
-        value=args[check.scope],
-        table=args['table'],
-        tables=args['tables'],
-        target=key
-      )
+      check_class = list(check.inputs.values())[0]
+      result = check(data, name=name, target=key)
       # Reassign new value
-      if result.output is not None and result.output is not args[check.scope]:
-        if check.scope == 'tables':
-          tables = result.output
-        elif check.scope == 'table':
-          if isinstance(target, Table):
-            table == result.output
+      output = result.output
+      if output is not None and output is not args[check_class]:
+        if type(target) is check_class:
+          inputs[check_class] = output
+        elif type(target) is Tables:
+          if check_class is Table:
+            inputs[Tables][key.table] = output
           else:
-            tables[key.table] = result.output
-        elif check.scope == 'column':
-          if isinstance(target, Column):
-            column == result.output
-          elif isinstance(target, Table):
-            table[key.column] = result.output
-          else:
-            tables[key.table][key.column] = result.output
+            # Column
+            inputs[Tables][key.table][key.column] = output
+        elif type(target) is Table:
+          # Column
+          inputs[Table][key.column] = output
       results[key] = result
-    output = {'column': column, 'table': table, 'tables': tables}[target.scope]
-    return Report(results.values(), target=target, input=input, output=output)
+    output = inputs[type(target)]
+    return Report(
+      list(results.values()), target=target, input=input, output=output
+    )
+
+  def serialize(self) -> List[dict]:
+    """
+    Get the dictionary representation of a schema.
+
+    Only registered checks (created using a `Check` constructor) are supported.
+    See :meth:`Check.serialize` for details.
+
+    Examples
+    --------
+    >>> import yaml
+    >>> from validator.check import register_check
+    >>>
+    >>> @register_check
+    ... def has_column(df, *, column):
+    ...   return column in df
+    >>>
+    >>> @register_check
+    ... def in_values(s, *, values):
+    ...   return s.isin(values)
+    >>>
+    >>> schema = Schema({Table('X'): {
+    ...   Table(): [Check.has_column('x')],
+    ...   Column('x'): [Check.in_values([0, 1])]
+    ... }})
+    >>> d = schema.serialize()
+    >>> print(yaml.dump(d, sort_keys=False))
+    - table: X
+      schemas:
+      - table: null
+        checks:
+        - name: has_column
+          params:
+            column: x
+      - column: x
+        checks:
+        - name: in_values
+          params:
+            values:
+            - 0
+            - 1
+    >>> Schema.deserialize(*d).serialize() == d
+    True
+    """
+    def _serialize(schema: SchemaDict) -> dict:
+      items = []
+      for target, subvalue in schema.items():
+        item = {**target.__dict__}
+        if isinstance(target, Column) and item['table'] is None:
+          del item['table']
+        if isinstance(subvalue, list):
+          item['checks'] = [check.serialize() for check in subvalue]
+        else:
+          item['schemas'] = _serialize(subvalue)
+        items.append(item)
+      return items
+
+    return _serialize(self.schema)
+
+  @classmethod
+  def deserialize(cls, *schemas: dict) -> 'Schema':
+    """
+    Load a schema from dictionaries.
+
+    Only registered checks (created using a `Check` constructor) are supported.
+    See :meth:`Check.deserialize` for details.
+
+    Parameters
+    ----------
+    *schemas
+      Dictionaries representing a schema.
+    """
+    def _deserialize(schemas: List[dict]) -> dict:
+      obj = {}
+      for schema in schemas:
+        temp = {k: schema[k] for k in ['table', 'column'] if k in schema}
+        target = Target.create(**temp)
+        if 'checks' in schema and 'schemas' in schema:
+          raise ValueError("Schema cannot have both 'schemas' and 'checks'")
+        if 'checks' in schema:
+          obj[target] = [
+            Check.deserialize(**check) for check in schema['checks']
+          ]
+        elif 'schemas' in schema:
+          obj[target] = _deserialize(schema['schemas'])
+        else:
+          raise ValueError("Schema must have either 'schemas' or 'checks'")
+      return obj
+
+    return cls(_deserialize(schemas))
+
+  def __add__(self, other: 'Schema') -> 'Schema':
+    """
+    Concatenate two schemas.
+
+    Parameters
+    ----------
+    other
+      Schema to concatenate to the end of the first schema.
+
+    Examples
+    --------
+    >>> x = Schema({Column('x'): [Check(lambda s: s.notnull())]})
+    >>> y = Schema({Column('y'): [Check(lambda s: s.notnull())]})
+    >>> (x + y).schema
+    {Column('x'): [Check.<lambda>()], Column('y'): [Check.<lambda>()]}
+    """
+    if not isinstance(other, self.__class__):
+      return other + self
+    return self.__class__({**self.schema, **other.schema})
+
+
+class Report:
+  """
+  Describes the result of a :class:`Schema` run.
+
+  Parameters
+  ----------
+  results
+    Result of each `Check`.
+  target
+    Target of the run.
+  input
+    Input data for `target`.
+  output
+    Output (potentially transformed) data for `target`.
+  """
+
+  def __init__(
+    self,
+    results: List[Result],
+    target: Target,
+    input: Data = None,
+    output: Data = None
+  ) -> None:
+    self.results = results
+    self.target = target
+    self.input = input
+    self.output = output
+
+  def __repr__(self) -> str:
+    return stringify_call(
+      self.__class__.__name__, self.target, valid=self.valid, counts=self.counts
+    )
+
+  @property
+  def counts(self) -> Dict[str, int]:
+    """Number of results by result code."""
+    n = {}
+    for result in self.results:
+      if result.code in n:
+        n[result.code] += 1
+      else:
+        n[result.code] = 1
+    return n
+
+  @property
+  def valid(self) -> Optional[bool]:
+    """
+    Overall test result.
+
+    - `None` if :attr:`results` is empty or all result codes are 'skip'
+    - `True` if all result codes are 'pass' or 'skip'
+    - `False` otherwise
+    """
+    if not self.results or all(result.code == 'skip' for result in self.results):
+      return None
+    return all(result.code in ['pass', 'skip'] for result in self.results)
+
+  def to_dataframe(self, explode: bool = False) -> pd.DataFrame:
+    """
+    Represent report as a :class:`pandas.DataFrame`.
+
+    Parameters
+    ----------
+    explode
+      Whether to expand `Result` with a non-scalar test result to multiple rows.
+
+    Examples
+    --------
+    >>> schema = Schema({Column(): [Check(lambda s: s.gt(2), name='gt2')]})
+    >>> report = schema(pd.Series([1, 2, 3]))
+    >>> report.to_dataframe()
+       code table column     row   value        check   tag message
+    0  fail  None   None  [0, 1]  [1, 2]  Check.gt2()  None    None
+    >>> report.to_dataframe(explode=True)
+       code table column row value        check   tag message
+    0  fail  None   None   0     1  Check.gt2()  None    None
+    0  fail  None   None   1     2  Check.gt2()  None    None
+    """
+    dicts = [result._to_dict() for result in self.results]
+    df = pd.DataFrame(dicts)
+    if explode:
+      df = df.explode('table').explode('column')
+      mask = df['value'].isnull() & df['row'].notnull()
+      df = pd.concat([
+        df[~mask].explode(['row', 'value']),
+        df[mask].explode('row')
+      ])
+      df.sort_index(inplace=True)
+    return df
