@@ -1,17 +1,12 @@
 import copy as copylib
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import pandas as pd
 
-from .check import Check, Data, Result
+from .check import Check, Result
 from .helpers import stringify_call, filter_kwargs
 from .targets import Target, Column, Table, Tables, classify_data, extract_data
-
-# ---- Schema helpers ----
-
-# Recursive type alias supported by Pylance and maybe other type checkers
-SchemaDict = Dict[Target, Union[List[Check], 'SchemaDict']]
-FlatSchemaDict = Dict[Target, Check]
+from .types import Data, FlatSchemaDict, SchemaDict
 
 # ---- Schema ----
 

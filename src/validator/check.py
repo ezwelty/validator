@@ -1,14 +1,19 @@
+from __future__ import annotations
 import inspect
 from inspect import Parameter, Signature
 import traceback
-from typing import Any, Callable, Dict, Hashable, List, Literal, Optional, Tuple, Type, Union
+from typing import (
+  Any, Callable, Dict, Hashable, List, Literal, Optional, Tuple, Type,
+  TYPE_CHECKING, Union
+)
 
 import makefun
 import pandas as pd
 
-from .helpers import Axis, Data, CheckFunction, filter_kwargs, stringify_call
+from .helpers import filter_kwargs, stringify_call
 from .targets import Column, Table, Tables, Target, classify_data, extract_data
-
+if TYPE_CHECKING:
+  from .types import Axis, CheckFunction, Data
 
 # ---- Helpers ----
 

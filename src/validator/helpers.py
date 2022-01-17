@@ -1,25 +1,11 @@
 import inspect
 import keyword
 import types
-from typing import Any, Callable, Dict, Hashable, Iterable, Literal, Optional, Protocol, Tuple, Union
+from typing import Any, Callable, Iterable
 
-import pandas as pd
 
 # ---- Types ----
 
-ColumnData = pd.Series
-TableData = pd.DataFrame
-TablesData = Dict[Hashable, pd.DataFrame]
-Data = Union[ColumnData, TableData, TablesData]
-ParentData = Union[TableData, TablesData]
-Valid = Union[Optional[bool], Dict[Hashable, Optional[bool]], pd.Series]
-
-class CheckFunction(Protocol):
-  def __call__(
-    self, __data: Data, *parents: ParentData, **kwargs: Any
-  ) -> Union[Valid, Data, Tuple[Valid, Data]]: ...
-
-Axis = Literal['row', 'column', 'table']
 # Scope = Literal['column', 'table', 'tables']
 # ARGUMENT_SCOPES: Dict[str, Scope] = {
 #   's': 'column',

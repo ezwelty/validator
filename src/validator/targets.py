@@ -1,9 +1,12 @@
+from __future__ import annotations
 from abc import ABC
-from typing import Any, Dict, Hashable, List, Optional, Set, Type
+from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING
 
 import pandas as pd
 
-from .helpers import Axis, Data, stringify_call
+from .helpers import stringify_call
+if TYPE_CHECKING:
+  from .types import Axis, Data
 
 
 class Target(ABC):
