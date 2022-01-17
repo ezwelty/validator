@@ -1,4 +1,4 @@
-from typing import Any, Dict, Hashable, Sequence
+from typing import Dict, Hashable, Sequence
 
 import pandas as pd
 
@@ -11,42 +11,42 @@ def not_empty(df: pd.DataFrame) -> bool:
   return not df.empty
 
 @register_check(message='Missing required column', axis='column')
-def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False, value: Any = pd.NA, dtype: str = None) -> Dict[Hashable, bool]:
+def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], coerce: bool = False) -> Dict[Hashable, bool]:
   for column in columns:
-    if column not in df and fill:
+    if column not in df and coerce:
       # NOTE: Modifies dataframe in place
-      df[column] = pd.Series(value, dtype=dtype, index=df.index)
+      df[column] = pd.Series(pd.NA, dtype=object, index=df.index)
   return {column: column in df for column in columns}
 
 @register_check(message='Column not one of {columns}', axis='column')
-def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], drop: bool = False) -> Dict[Hashable, bool]:
-  if drop:
+def only_has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], coerce: bool = False) -> Dict[Hashable, bool]:
+  if coerce:
     extras = [column for column in df if column not in columns]
     # NOTE: Modifies dataframe in place
     df.drop(columns=extras, inplace=True)
   return {column: column in columns for column in df}
 
 @register_check(message='Column does not follow order {columns}', axis='column')
-def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], sort: bool = False) -> Dict[Hashable, bool]:
+def has_sorted_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], coerce: bool = False) -> Dict[Hashable, bool]:
   """
   Check whether column names are sorted.
 
   Args:
     columns: Sorted column names.
-    sort: Whether to sort table columns to match `columns`.
+    coerce: Whether to sort table columns to match `columns`.
       Columns not named in `columns` are ignored and left in place.
 
   Examples:
     >>> df = pd.DataFrame(columns=['y', 'z', 'x'])
     >>> has_sorted_columns(df, columns=['x', 'z'])
     {'y': True, 'z': False, 'x': False}
-    >>> has_sorted_columns(df, columns=['x', 'z'], sort=True)
+    >>> has_sorted_columns(df, columns=['x', 'z'], coerce=True)
     {'y': True, 'x': True, 'z': True}
     >>> list(df)
     ['y', 'x', 'z']
   """
   ordered = sort_partial(list(df), order=columns)
-  if sort:
+  if coerce:
     # NOTE: Modifies dataframe in place
     for i, column in enumerate(ordered):
       s = df.pop(column)

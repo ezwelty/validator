@@ -109,29 +109,29 @@ def schema_to_schema(
   Schema({})
   >>> schema_to_schema(schema, require=True)
   Schema({Table():
-    [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], coerce=False)]})
   >>> schema_to_schema(schema, require=None)
   Schema({Table():
-    [Check.has_columns(columns=['id', 'x'], fill=True, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], coerce=True)]})
   >>> schema_to_schema(schema, order=True)
   Schema({Table():
-    [Check.has_sorted_columns(columns=['id', 'x'], sort=False)]})
+    [Check.has_sorted_columns(columns=['id', 'x'], coerce=False)]})
   >>> schema_to_schema(schema, order=None)
   Schema({Table():
-    [Check.has_sorted_columns(columns=['id', 'x'], sort=True)]})
+    [Check.has_sorted_columns(columns=['id', 'x'], coerce=True)]})
   >>> schema_to_schema(schema, strict=True)
   Schema({Table():
-    [Check.only_has_columns(columns=['id', 'x'], drop=False)]})
+    [Check.only_has_columns(columns=['id', 'x'], coerce=False)]})
   >>> schema_to_schema(schema, strict=None)
   Schema({Table():
-    [Check.only_has_columns(columns=['id', 'x'], drop=True)]})
+    [Check.only_has_columns(columns=['id', 'x'], coerce=True)]})
 
   With a primary key.
 
   >>> schema = {'fields': fields, 'primaryKey': ['id', 'x']}
   >>> schema_to_schema(schema)
   Schema({Table():
-      [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)],
+      [Check.has_columns(columns=['id', 'x'], coerce=False)],
     Column('id'):
       [Check.not_null()],
     Column('x'):
@@ -170,17 +170,17 @@ def schema_to_schema(
     if required:
       checks.append(Check.has_columns(required))
     if optional:
-      checks.append(Check.has_columns(optional, fill=True))
+      checks.append(Check.has_columns(optional, coerce=True))
   # Check column order
   if order is True:
-    checks.append(Check.has_sorted_columns(required + optional, sort=False))
+    checks.append(Check.has_sorted_columns(required + optional))
   elif order is None:
-    checks.append(Check.has_sorted_columns(required + optional, sort=True))
+    checks.append(Check.has_sorted_columns(required + optional, coerce=True))
   # Filter extra columns
   if strict is True:
-    checks.append(Check.only_has_columns(required + optional, drop=False))
+    checks.append(Check.only_has_columns(required + optional))
   elif strict is None:
-    checks.append(Check.only_has_columns(required + optional, drop=True))
+    checks.append(Check.only_has_columns(required + optional, coerce=True))
   # Check table column structure before columns
   flow[Table()] = checks
   # Column checks
@@ -228,7 +228,7 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
   Schema({})
   >>> resource_to_schema(resource, require=True)
   Schema({Table('tab'):
-    [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], coerce=False)]})
 
   With an internal foreign key.
 
@@ -287,15 +287,15 @@ def package_to_schema(
   >>> package_to_schema(package)
   Schema({})
   >>> package_to_schema(package, require=True)
-  Schema({Tables(): [Check.has_tables(tables=['x', 'y'], fill=False)]})
+  Schema({Tables(): [Check.has_tables(tables=['x', 'y'], coerce=False)]})
   >>> package_to_schema(package, order=True)
-  Schema({Tables(): [Check.has_sorted_tables(tables=['x', 'y'], sort=False)]})
+  Schema({Tables(): [Check.has_sorted_tables(tables=['x', 'y'], coerce=False)]})
   >>> package_to_schema(package, order=None)
-  Schema({Tables(): [Check.has_sorted_tables(tables=['x', 'y'], sort=True)]})
+  Schema({Tables(): [Check.has_sorted_tables(tables=['x', 'y'], coerce=True)]})
   >>> package_to_schema(package, strict=True)
-  Schema({Tables(): [Check.only_has_tables(tables=['x', 'y'], drop=False)]})
+  Schema({Tables(): [Check.only_has_tables(tables=['x', 'y'], coerce=False)]})
   >>> package_to_schema(package, strict=None)
-  Schema({Tables(): [Check.only_has_tables(tables=['x', 'y'], drop=True)]})
+  Schema({Tables(): [Check.only_has_tables(tables=['x', 'y'], coerce=True)]})
 
   With a foreign key.
 
@@ -314,17 +314,17 @@ def package_to_schema(
   if require is True:
     checks.append(Check.has_tables(required))
   elif require is None:
-    checks.append(Check.has_tables(required, fill=True))
+    checks.append(Check.has_tables(required, coerce=True))
   # Check table order
   if order is True:
-    checks.append(Check.has_sorted_tables(required, sort=False))
+    checks.append(Check.has_sorted_tables(required))
   elif order is None:
-    checks.append(Check.has_sorted_tables(required, sort=True))
+    checks.append(Check.has_sorted_tables(required, coerce=True))
   # Filter extra tables
   if strict is True:
-    checks.append(Check.only_has_tables(required, drop=False))
+    checks.append(Check.only_has_tables(required))
   elif strict is None:
-    checks.append(Check.only_has_tables(required, drop=True))
+    checks.append(Check.only_has_tables(required, coerce=True))
   # Check table structure before tables
   flow[Tables()] = checks
   # Table checks

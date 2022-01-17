@@ -59,7 +59,7 @@ schema = Schema({
   },
   Table('secondary'): {
     Table(): [
-      Check.has_columns(['integer_pk', 'string_pk', 'boolean_lookup', 'extra'], fill=True),
+      Check.has_columns(['integer_pk', 'string_pk', 'boolean_lookup', 'extra'], coerce=True),
       Check.only_has_columns(['integer_pk', 'string_pk', 'boolean_lookup'])
     ],
     Column('integer_pk'): [
