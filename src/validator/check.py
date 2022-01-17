@@ -114,6 +114,7 @@ def _generate_method(
   fn,
   inputs: Dict[str, Target] = None,
   required: Union[List[Target], Callable] = None,
+  test: bool = True,
   axis: Axis = None
 ) -> Callable:
   """Generate a Check class method."""
@@ -132,6 +133,7 @@ def _generate_method(
       'fn': fn,
       'name': method.__name__,
       'inputs': inputs,
+      'test': test,
       'axis': axis
     }
     @makefun.wraps(method, check=True)
@@ -153,9 +155,9 @@ class Check:
   Parameters
   ----------
   fn
-    A function that tests (and optionally transforms) tabular data.
+    A function that tests and/or transforms tabular data.
 
-    The first parameter is the data to test – one of column
+    The first parameter is the data to process - either a column
     (`Series`), table (`DataFrame`), or tables (`Dict[Any, DataFrame]`).
     Additional parameters may be used to pass parent data (table and/or tables).
     These parameters must either follow the naming convention `s` / `column`,
@@ -166,7 +168,8 @@ class Check:
     Returned test results may either be a single `Optional[bool]` (`True`: pass,
     `False`: fail, `None`: skip) or per child (see `axis`) as `Union[Series,
     Dict[Any, bool]]`. To transform the data, either modify it in place (use
-    caution) or return the test result and transformation together as a `tuple`.
+    caution), return the test result and transformation together as a `tuple`,
+    or return the transformed data alone with `test=False`.
   inputs
     Mapping of positional parameter names in `fn` to target class `Column`,
     `Table` or `Tables`. Only needed if the names do not follow the naming
@@ -177,6 +180,9 @@ class Check:
     columns of `Tables` (e.g. `[Table('main'), Column('other',
     table='main')]`). This allows the check to be skipped if a parent
     is present but a required child is missing.
+  test
+    Whether the returned value (if not a tuple) is a test result
+    or transformed data (see `fn`).
   axis
     Whether a vector test result returned by `fn` is by
     - 'row': default for `Table` and `Column`
@@ -252,6 +258,17 @@ class Check:
   0    0.0
   1    NaN
   dtype: float64
+
+  A check may also just return transformed data:
+
+  >>> def upper(s: pd.Series) -> pd.Series:
+  ...   return s.str.upper()
+  >>> result = Check(upper, test=False)(pd.Series(['a']))
+  >>> result.valid is None
+  True
+  >>> result.output
+  0    A
+  dtype: object
   """
 
   def __init__(
@@ -259,6 +276,7 @@ class Check:
     fn: CheckFunction,
     inputs: Dict[str, Type[Target]] = None,
     required: Union[List[Target], Callable] = None,
+    test: bool = True,
     axis: Axis = None,
     params: Dict[str, Any] = None,
     message: str = None,
@@ -272,6 +290,7 @@ class Check:
     if callable(required):
       required: List[Target] = filter_kwargs(required, self.params)
     self.required = _test_required(inputs=self.inputs, required=required)
+    self.test = test
     self.message = message
     self.name = name or fn.__name__
     self.tag = tag
@@ -428,8 +447,10 @@ class Check:
       return Result(self, target=target, input=input, error=error)
     if isinstance(result, tuple):
       valid, output = result
-    else:
+    elif self.test:
       valid, output = result, None
+    else:
+      valid, output = None, result
     # Process test result
     try:
       if isinstance(valid, dict):
@@ -639,6 +660,7 @@ def register_check(
   name: str = None,
   inputs: Dict[str, Target] = None,
   required: Union[List[Target], Callable] = None,
+  test: bool = True,
   axis: Axis = None,
   message: str = None,
   tag: Any = None
@@ -661,6 +683,9 @@ def register_check(
     (see :attr:`Check.required`).
     If `Callable`, can accept any of the keyword arguments of `fn`
     and must return `List[Target]`.
+  test
+    Whether the return value of `fn`, if not a tuple, is a test result
+    or transformed data (see :attr:`Check.test`).
   axis
     Whether a vector test result returned by `fn` is by
     'row', 'column', or 'table' (see :attr:`Check.axis`).
@@ -700,7 +725,9 @@ def register_check(
           )
         )
 
-    @_generate_method(fn, inputs=inputs, required=required, axis=axis)
+    @_generate_method(
+      fn, inputs=inputs, required=required, test=test, axis=axis
+    )
     @makefun.with_signature(
       # Use string 'Check' to match built-in class methods
       Signature(parameters, return_annotation=Check.__name__),

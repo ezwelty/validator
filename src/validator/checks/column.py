@@ -224,17 +224,17 @@ def parse_year(s: pd.Series) -> pd.Series:
 # ---- Transforms ----
 
 @register_check
-def string_to_lowercase(s: pd.Series) -> Tuple[bool, pd.Series]:
-  return True, s.str.lower()
+def string_to_lowercase(s: pd.Series) -> pd.Series:
+  return s.str.lower()
 
 @register_check
-def string_to_uppercase(s: pd.Series) -> Tuple[bool, pd.Series]:
-  return True, s.str.upper()
+def string_to_uppercase(s: pd.Series) -> pd.Series:
+  return s.str.upper()
 
 @register_check
-def number_to_integer(s: pd.Series) -> Tuple[bool, pd.Series]:
-  return True, s.round().astype('Int64')
+def number_to_integer(s: pd.Series) -> pd.Series:
+  return s.round().astype('Int64')
 
 @register_check
-def integer_to_number(s: pd.Series) -> Tuple[bool, pd.Series]:
-  return True, s.astype('Float64')
+def integer_to_number(s: pd.Series) -> pd.Series:
+  return s.astype('Float64')

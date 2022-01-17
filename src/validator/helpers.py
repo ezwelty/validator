@@ -15,7 +15,9 @@ ParentData = Union[TableData, TablesData]
 Valid = Union[Optional[bool], Dict[Hashable, Optional[bool]], pd.Series]
 
 class CheckFunction(Protocol):
-  def __call__(self, __data: Data, *parents: ParentData, **kwargs: Any) -> Union[Valid, Tuple[Valid, Data]]: ...
+  def __call__(
+    self, __data: Data, *parents: ParentData, **kwargs: Any
+  ) -> Union[Valid, Data, Tuple[Valid, Data]]: ...
 
 Axis = Literal['row', 'column', 'table']
 # Scope = Literal['column', 'table', 'tables']
