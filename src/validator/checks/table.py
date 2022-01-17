@@ -1,4 +1,4 @@
-from typing import Any, Dict, Hashable, Sequence
+from typing import Dict, Hashable, Sequence
 
 import pandas as pd
 
@@ -11,11 +11,11 @@ def not_empty(df: pd.DataFrame) -> bool:
   return not df.empty
 
 @register_check(message='Missing required column', axis='column')
-def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False, value: Any = pd.NA, dtype: str = None) -> Dict[Hashable, bool]:
+def has_columns(df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False) -> Dict[Hashable, bool]:
   for column in columns:
     if column not in df and fill:
       # NOTE: Modifies dataframe in place
-      df[column] = pd.Series(value, dtype=dtype, index=df.index)
+      df[column] = pd.Series(pd.NA, dtype=object, index=df.index)
   return {column: column in df for column in columns}
 
 @register_check(message='Column not one of {columns}', axis='column')

@@ -131,7 +131,7 @@ class Schema:
     ... })
     >>> schema._squeeze()
     Schema({Table('x'):
-        [Check.has_columns(columns=['x'], fill=False, value=<NA>, dtype=None)],
+        [Check.has_columns(columns=['x'], fill=False)],
       Table('x'):
         {Column('x'):
           [Check.not_null(), Check.unique()]}})

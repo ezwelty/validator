@@ -109,10 +109,10 @@ def schema_to_schema(
   Schema({})
   >>> schema_to_schema(schema, require=True)
   Schema({Table():
-    [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], fill=False)]})
   >>> schema_to_schema(schema, require=None)
   Schema({Table():
-    [Check.has_columns(columns=['id', 'x'], fill=True, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], fill=True)]})
   >>> schema_to_schema(schema, order=True)
   Schema({Table():
     [Check.has_sorted_columns(columns=['id', 'x'], sort=False)]})
@@ -131,7 +131,7 @@ def schema_to_schema(
   >>> schema = {'fields': fields, 'primaryKey': ['id', 'x']}
   >>> schema_to_schema(schema)
   Schema({Table():
-      [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)],
+      [Check.has_columns(columns=['id', 'x'], fill=False)],
     Column('id'):
       [Check.not_null()],
     Column('x'):
@@ -173,12 +173,12 @@ def schema_to_schema(
       checks.append(Check.has_columns(optional, fill=True))
   # Check column order
   if order is True:
-    checks.append(Check.has_sorted_columns(required + optional, sort=False))
+    checks.append(Check.has_sorted_columns(required + optional))
   elif order is None:
     checks.append(Check.has_sorted_columns(required + optional, sort=True))
   # Filter extra columns
   if strict is True:
-    checks.append(Check.only_has_columns(required + optional, drop=False))
+    checks.append(Check.only_has_columns(required + optional))
   elif strict is None:
     checks.append(Check.only_has_columns(required + optional, drop=True))
   # Check table column structure before columns
@@ -228,7 +228,7 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
   Schema({})
   >>> resource_to_schema(resource, require=True)
   Schema({Table('tab'):
-    [Check.has_columns(columns=['id', 'x'], fill=False, value=<NA>, dtype=None)]})
+    [Check.has_columns(columns=['id', 'x'], fill=False)]})
 
   With an internal foreign key.
 
@@ -317,12 +317,12 @@ def package_to_schema(
     checks.append(Check.has_tables(required, fill=True))
   # Check table order
   if order is True:
-    checks.append(Check.has_sorted_tables(required, sort=False))
+    checks.append(Check.has_sorted_tables(required))
   elif order is None:
     checks.append(Check.has_sorted_tables(required, sort=True))
   # Filter extra tables
   if strict is True:
-    checks.append(Check.only_has_tables(required, drop=False))
+    checks.append(Check.only_has_tables(required))
   elif strict is None:
     checks.append(Check.only_has_tables(required, drop=True))
   # Check table structure before tables
