@@ -3,6 +3,16 @@ from typing import Any, Callable, Iterable
 
 
 def filter_kwargs(fn: Callable, /, *args: Any, **kwargs: Any) -> Callable:
+  """
+  Execute function with keyword arguments matching the function signature.
+
+  Examples
+  --------
+  >>> def f(*args, x):
+  ...   print(f'args: {args}, x: {x}')
+  >>> filter_kwargs(f, 'a', 'b', x=1, y=2)
+  args: ('a', 'b'), x: 1
+  """
   params = inspect.signature(fn).parameters
   has_kwargs = any(
     param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values()
