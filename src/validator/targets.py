@@ -139,7 +139,9 @@ def classify_data(data: Data) -> Optional[Type[Target]]:
       return Tables
   return None
 
-def extract_data(data: Data, name: Target = None, target: Target = None) -> Dict[Type[Target], Data]:
+def extract_data(
+  data: Data, name: Target = None, target: Target = None
+) -> Dict[Type[Target], Data]:
   """
   Extract data.
 
@@ -174,6 +176,21 @@ def extract_data(data: Data, name: Target = None, target: Target = None) -> Dict
       raise ValueError(f'{target} is not a child of {name}')
   if target is None:
     target = name
+  # Check that table column names are unique
+  if isinstance(name, Table):
+    seen = set()
+    duplicates = [x for x in data if x in seen or seen.add(x)]
+    if duplicates:
+      raise ValueError(f'Table contains duplicate column names: {duplicates}')
+  elif isinstance(name, Tables):
+    all_duplicates = {}
+    for key, df in data.items():
+      seen = set()
+      duplicates = [x for x in df if x in seen or seen.add(x)]
+      if duplicates:
+        all_duplicates[key] = duplicates
+    if all_duplicates:
+      raise ValueError(f'Table(s) contain duplicate column names: {all_duplicates}')
   # Load child data
   inputs = {Tables: None, Table: None, Column: None}
   inputs[type(name)] = data
