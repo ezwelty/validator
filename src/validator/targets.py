@@ -182,6 +182,14 @@ def extract_data(
       raise ValueError(f'{target} is not a child of {name}')
   if target is None:
     target = name
+  # Check that table and column names are not None
+  none_as_name = False
+  if isinstance(name, (Table, Tables)):
+    none_as_name |= None in data
+  if isinstance(name, Tables):
+    none_as_name |= any(None in value for value in data.values())
+  if none_as_name:
+    raise ValueError(f'Tables and columns cannot be named `None`')
   # Check that table column names are unique
   if isinstance(name, Table):
     seen = set()
