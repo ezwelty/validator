@@ -55,6 +55,13 @@ class Target(ABC):
       self.__dict__ == other.__dict__
     )
 
+  def matches(self, other: Any) -> bool:
+    return (
+      type(self) is type(other) and
+      list(other.__dict__) == list(self.__dict__) and
+      all(self.__dict__[k] in {None, v} for k, v in other.__dict__.items())
+    )
+
   def __contains__(self, other: Any) -> bool:
     return False
 
@@ -101,8 +108,7 @@ class Table(Target):
   def __contains__(self, other: Any) -> bool:
     return (
       isinstance(other, Column) and
-      other.column is not None and
-      other.table == self.table
+      (other.table is None or other.table == self.table)
     )
 
 
@@ -111,7 +117,7 @@ class Tables(Target):
   CHILDREN: Set[Type[Target]] = {Column, Table}
 
   def __contains__(self, other: Any) -> bool:
-    return isinstance(other, (Column, Table)) and other.table is not None
+    return isinstance(other, (Column, Table))
 
 
 def classify_data(data: Data) -> Type[Target]:

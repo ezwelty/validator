@@ -181,6 +181,70 @@ class Schema:
       unwrap_singletons(self.schema)
     return self
 
+  def _filter(self, input: Data, target: Target) -> FlatSchemaDict:
+    """
+    Filter schema after flattening based on input data and name.
+
+    Examples
+    --------
+    >>> schema = Schema({
+    ...   Table(): [Check.has_columns(['x'])],
+    ...   Column(): [Check.not_null()],
+    ...   Column('x'): [Check.unique()],
+    ... })
+    >>> dfs = {'a': pd.DataFrame({'x': [0], 'y': [1]})}
+    >>> schema._filter(dfs, Tables())
+    {Table('a'): Check.has_columns(columns=['x'], fill=False),
+    Column('x', table='a'): Check.not_null(),
+    Column('y', table='a'): Check.not_null(),
+    Column('x', table='a'): Check.unique()}
+    >>> schema._filter(dfs['a'], Table('a'))
+    {Table('a'): Check.has_columns(columns=['x'], fill=False),
+    Column('x', table='a'): Check.not_null(),
+    Column('y', table='a'): Check.not_null(),
+    Column('x', table='a'): Check.unique()}
+    >>> schema._filter(dfs['a'], Table())
+    {Table(): Check.has_columns(columns=['x'], fill=False),
+    Column('x'): Check.not_null(),
+    Column('y'): Check.not_null(),
+    Column('x'): Check.unique()}
+    >>> schema._filter(dfs['a']['x'], Column('x', table='a'))
+    {Column('x', table='a'): Check.not_null(),
+    Column('x', table='a'): Check.unique()}
+    >>> schema._filter(dfs['a']['x'], Column('x'))
+    {Column('x'): Check.not_null(), Column('x'): Check.unique()}
+    >>> schema._filter(dfs['a']['x'], Column())
+    {Column(): Check.not_null()}
+    """
+    filtered = {}
+    for key, check in self._flatten().items():
+      if key.equals(target):
+        filtered[key] = check
+      elif key.matches(target):
+        filtered[target.copy()] = check
+      elif key in target:
+        if isinstance(key, (Column, Table)) and key.table is not None:
+          filtered[key] = check
+        elif isinstance(key, Table):
+          filtered.update({Table(table): check for table in input})
+        elif isinstance(key, Column):
+          if isinstance(target, Table):
+            columns = list(input) if key.column is None else [key.column]
+            filtered.update(
+              {Column(column, target.table): check for column in columns}
+            )
+          elif isinstance(target, Tables):
+            tables = list(input) if key.table is None else [key.table]
+            for table in tables:
+              filtered.update(
+                {
+                  Column(column, table): check
+                  for column in
+                  (list(input[table]) if key.column is None else [key.column])
+                }
+              )
+    return filtered
+
   def __call__(
     self,
     data: Data = None,
@@ -211,22 +275,23 @@ class Schema:
 
     Examples
     --------
+    >>> schema = Schema({
+    ...   Column(): [Check.not_null()],
+    ...   Column('x'): [Check.unique()]
+    ... })
     >>> s = pd.Series([0, 1])
-    >>> check = Check(lambda s: s.isin({0, 1}))
-    >>> schema = Schema({Column(): [check]})
     >>> schema(s).counts
     {'pass': 1}
+    >>> schema(s, name=Column('x')).counts
+    {'pass': 2}
 
     >>> df = pd.DataFrame({'x': s})
     >>> schema(df, target=Column('x')).counts
-    {}
-    >>> schema = Schema({Column('x'): [check]})
-    >>> schema(df).counts
-    {'pass': 1}
+    {'pass': 2}
 
-    >>> schema = Schema({Column('y'): [check]})
-    >>> schema(df).results[0].message
-    "Missing required inputs [Column('y')]"
+    >>> df = pd.DataFrame({'y': s})
+    >>> schema(df).results[1].message
+    "Missing required inputs [Column('x')]"
     """
     if copy:
       data = copylib.deepcopy(data)
@@ -235,10 +300,8 @@ class Schema:
     target = target or name
     input = inputs[type(target)]
     results = {}
-    for key, check in self._flatten().items():
+    for key, check in self._filter(input, target).items():
       # print(f'{key}: {check}')
-      if not (key.equals(target) or key in target):
-        continue
       # Load data for check
       args = inputs.copy()
       if isinstance(target, Tables) and isinstance(key, (Table, Column)):
