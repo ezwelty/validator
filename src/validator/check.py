@@ -575,7 +575,9 @@ class Result:
       return 'skip'
     if (
       self.valid is True or
-      (isinstance(self.valid, pd.Series) and self.valid.all())
+      (isinstance(self.valid, pd.Series) and self.valid.all()) or
+      # Only transformed input (no test result)
+      (self.valid is None and self.output is not None)
     ):
       return 'pass'
     if (
@@ -583,7 +585,7 @@ class Result:
       (isinstance(self.valid, pd.Series) and not self.valid.all())
     ):
       return 'fail'
-    assert False
+    assert False, 'Could not determine result code'
 
   @property
   def message(self) -> Optional[str]:
