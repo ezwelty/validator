@@ -8,6 +8,7 @@ authors = ["ezwelty <ethan.welty@gmail.com>"]
 python = "^3.9"
 pandas = "^1.3.5"
 makefun = "^1.12.1"
+daff = "^1.3.46"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
