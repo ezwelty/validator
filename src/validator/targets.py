@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC
+from multiprocessing.sharedctypes import Value
 from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING
 
 import pandas as pd
@@ -113,7 +114,7 @@ class Tables(Target):
     return isinstance(other, (Column, Table)) and other.table is not None
 
 
-def classify_data(data: Data) -> Optional[Type[Target]]:
+def classify_data(data: Data) -> Type[Target]:
   """
   Classify tabular type of input data.
 
@@ -137,7 +138,9 @@ def classify_data(data: Data) -> Optional[Type[Target]]:
   if isinstance(data, dict):
     if all(isinstance(value, pd.DataFrame) for value in data.values()):
       return Tables
-  return None
+  raise ValueError(
+    f'Cannot classify data ({type(data)}) as Column, Table, or Tables'
+  )
 
 def extract_data(
   data: Data, name: Target = None, target: Target = None
@@ -159,15 +162,12 @@ def extract_data(
   >>> inputs == {Tables: dfs, Table: dfs['X'], Column: dfs['X']['x']}
   True
   """
+  cls = classify_data(data)
   # Identify data type
   if name is None:
-    cls = classify_data(data)
-    if cls is None:
-      raise ValueError(
-        f'Cannot classify data ({type(data)}) as Column, Table, or Tables.'
-        ' Please provide a `name`.'
-      )
     name = cls()
+  elif not isinstance(name, cls):
+    raise ValueError(f'Data recognized as {cls}, not {type(name)}')
   # Check child is actually a child
   if target is not None:
     if isinstance(target, Column) and isinstance(name, Table) and target.table is None:
@@ -211,5 +211,5 @@ def extract_data(
   ):
     inputs[Column] = inputs[Table][target.column]
   if inputs[type(target)] is None:
-    raise ValueError(f'Failed to load data for {target} from data')
+    raise ValueError(f'Failed to extract data for {target} from data')
   return inputs
