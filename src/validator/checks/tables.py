@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, Sequence
+from typing import Dict, Hashable, Sequence, Tuple
 
 import pandas as pd
 
@@ -36,3 +36,29 @@ def has_sorted_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Has
     dfs.clear()
     dfs.update(temp)
   return {table: table == ordered[i] for i, table in enumerate(dfs)}
+
+@register_check(message='Table with new name already exists')
+def rename_tables(
+  dfs: Dict[Hashable, pd.DataFrame], *, tables: Dict[Hashable, Hashable]
+) -> Tuple[Dict[Hashable, bool], Dict[Hashable, pd.DataFrame]]:
+  """
+  Rename selected tables, unless tables with new names already exist.
+
+  Examples
+  --------
+  >>> dfs = {'x': pd.DataFrame(), 'y': pd.DataFrame(), 'z': pd.DataFrame()}
+  >>> valid, output = rename_tables(dfs, tables={'x': 'xx', 'y': 'z'})
+  >>> valid
+  {'x': True, 'y': False}
+  >>> list(output)
+  ['xx', 'y', 'z']
+  """
+  valid = {
+    name: name not in dfs or rename not in dfs
+    for name, rename in tables.items()
+  }
+  renamed = {
+    tables.get(name, name) if valid.get(name, False) else name: dfs[name]
+    for name in dfs
+  }
+  return valid, renamed

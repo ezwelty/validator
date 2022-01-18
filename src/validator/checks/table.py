@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, Sequence
+from typing import Dict, Hashable, Sequence, Tuple
 
 import pandas as pd
 
@@ -197,3 +197,104 @@ def matches_foreign_columns(
   ]
   refs = joined[ref_columns].rename(columns={v: k for k, v in columns.items()})
   return (df[[*columns]] == refs).all(axis=1)
+
+@register_check(message='Column with new name already exists', axis='column')
+def rename_columns(
+  df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]
+) -> Tuple[Dict[Hashable, bool], pd.DataFrame]:
+  """
+  Rename selected columns, unless columns with new names already exist.
+
+  Examples
+  --------
+  >>> df = pd.DataFrame(columns=['x', 'y', 'z'])
+  >>> valid, output = rename_columns(df, columns={'x': 'xx', 'y': 'z'})
+  >>> valid
+  {'x': True, 'y': False}
+  >>> list(output)
+  ['xx', 'y', 'z']
+  """
+  valid = {
+    name: name not in df or rename not in df
+    for name, rename in columns.items()
+  }
+  renames = {name: rename for name, rename in columns.items() if valid[name]}
+  return valid, df.rename(columns=renames)
+
+@register_check(message='Column contains only null values', axis='column')
+def columns_not_null(
+  df: pd.DataFrame, *, drop: bool = False
+) -> Tuple[pd.Series, pd.Series]:
+  """
+  Check that columns are not null.
+
+  Examples
+  --------
+  >>> df = pd.DataFrame({'x': [0, pd.NA], 'y': [pd.NA, pd.NA]})
+  >>> valid, output = columns_not_null(df)
+  >>> valid
+  x     True
+  y    False
+  dtype: bool
+  >>> output is df
+  True
+  >>> valid, output = columns_not_null(df, drop=True)
+  >>> valid
+  x    True
+  dtype: bool
+  >>> list(output)
+  ['x']
+  """
+  valid = df.notnull().any(axis='index')
+  if drop:
+    valid = valid[valid]
+    df = df[valid.index]
+  return valid, df
+
+@register_check(message='Row contains only null values')
+def rows_not_null(
+  df: pd.DataFrame, *, drop: bool = False
+) -> Tuple[pd.Series, pd.DataFrame]:
+  """
+  Check that rows are not null.
+
+  Examples
+  --------
+  >>> df = pd.DataFrame({'x': [0, pd.NA], 'y': [pd.NA, pd.NA]})
+  >>> valid, output = rows_not_null(df)
+  >>> valid
+  0     True
+  1    False
+  dtype: bool
+  >>> output is df
+  True
+  >>> valid, output = rows_not_null(df, drop=True)
+  >>> valid
+  0    True
+  dtype: bool
+  >>> list(output.index)
+  [0]
+  """
+  valid = df.notnull().any(axis='columns')
+  if drop:
+    df = df[valid]
+    valid = valid[valid]
+  return valid, df
+
+@register_check(message='Column contains non-null values', axis='column')
+def columns_missing_or_null(
+  df: pd.DataFrame, *, columns: Sequence[Hashable]
+) -> Dict[Hashable, bool]:
+  """
+  Check that selected columns are missing or null.
+
+  Examples
+  --------
+  >>> df = pd.DataFrame({'x': [0, pd.NA], 'y': [pd.NA, pd.NA]})
+  >>> columns_missing_or_null(df, columns=['x', 'y'])
+  {'x': False, 'y': True}
+  """
+  return {
+    column: column not in df or not df[column].notnull().any()
+    for column in columns
+  }
