@@ -234,13 +234,13 @@ class Schema:
               {Column(column, target.table): check for column in columns}
             )
           elif isinstance(target, Tables):
-            tables = list(input) if key.table is None else [key.table]
-            for table in tables:
+            for table in input:
               filtered.update(
                 {
                   Column(column, table): check
                   for column in
-                  (list(input[table]) if key.column is None else [key.column])
+                  (input[table] if key.column is None else [key.column])
+                  if column in input[table]
                 }
               )
     return filtered
