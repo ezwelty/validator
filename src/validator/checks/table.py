@@ -275,7 +275,7 @@ def rows_not_null(
   >>> list(output.index)
   [0]
   """
-  valid = df.notnull().any(axis='columns')
+  valid = df.notnull().any(axis='column')
   if drop:
     df = df[valid]
     valid = valid[valid]
