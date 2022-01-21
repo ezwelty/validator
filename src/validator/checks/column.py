@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple, Union
 
 import pandas as pd
 
@@ -122,7 +122,7 @@ def is_type(s: pd.Series, *, type: str) -> bool:
 # ---- Parsers ----
 
 @register_check(message='Value could not be parsed to type {type}')
-def parse_as_type(s: pd.Series, *, type='string', **kwargs: Any) -> Tuple[pd.Series, pd.Series]:
+def parse_as_type(s: pd.Series, *, type='string', **kwargs: Any) -> Tuple[Union[bool, pd.Series], pd.Series]:
   """
   Parse column as a certain data type.
 
@@ -153,8 +153,7 @@ def parse_as_type(s: pd.Series, *, type='string', **kwargs: Any) -> Tuple[pd.Ser
   parsed = parser(s, **kwargs)
   # pd.testing.assert_index_equal(s.index, parsed.index)
   if parsed is s:
-    # TODO: Return scalar True
-    return ~pd.Series(dtype=bool, index=s.index), parsed
+    return True, parsed
   return s.isnull() | parsed.notnull(), parsed
 
 def _coerce(s: pd.Series, map: Callable, dtype: str = None) -> pd.Series:
