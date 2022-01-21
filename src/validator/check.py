@@ -725,7 +725,6 @@ def register_check(
         # reserved.append(param.name)
     # Add customizable Check parameters as keyword-only arguments
     for key, dtype, default in [('message', str, message), ('tag', Any, tag)]:
-      if default is not None:
         parameters.append(
           Parameter(
             key, default=default, annotation=dtype, kind=Parameter.KEYWORD_ONLY
