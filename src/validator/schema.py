@@ -318,11 +318,13 @@ class Schema:
           )
           continue
         args[Column] = args[Table][key.column]
+      # Load updated data for name
+      data = args[type(name)]
       # Run check
-      check_class = list(check.inputs.values())[0]
       result = check(data, name=name, target=key)
       # Reassign new value
       output = result.output
+      check_class = list(check.inputs.values())[0]
       if output is not None and output is not args[check_class]:
         if type(target) is check_class:
           inputs[check_class] = output
