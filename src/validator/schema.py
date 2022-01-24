@@ -39,36 +39,37 @@ class Schema:
   def __init__(self, schema: SchemaDict) -> None:
     if not isinstance(schema, dict):
       raise TypeError(f'Schema must be a dictionary, not a {type(schema)}')
+    type(self)._flatten(schema)
     self.schema = schema
-    self._flatten()
 
   def __repr__(self) -> str:
     return stringify_call(self.__class__.__name__, self.schema)
 
-  def _flatten(self) -> FlatSchemaDict:
+  @staticmethod
+  def _flatten(checks: SchemaDict) -> FlatSchemaDict:
     """
-    Flatten schema.
+    Flatten checks.
 
     Examples
     --------
-    >>> schema = Schema({
+    >>> checks = {
     ...   Table('X'): {
     ...     Table(): [Check(lambda df: 'x' in df, name='has_x')],
     ...     Column('x'): [Check(lambda s: s.notnull(), name='x_not_null')]
     ...   }
-    ... })
-    >>> schema._flatten()
+    ... }
+    >>> Schema._flatten(checks)
     {Table('X'): Check.has_x(), Column('x', table='X'): Check.x_not_null()}
     """
     errors = []
     flat = {}
 
     def traverse(
-      schema: SchemaDict,
+      checks: SchemaDict,
       baseprefix: str = '',
       basenames: dict = {}
     ) -> None:
-      for key, value in schema.items():
+      for key, value in checks.items():
         prefix = f'{baseprefix}.{key}'
         # Check class of dictionary key
         if not isinstance(key, Target):
@@ -108,18 +109,19 @@ class Schema:
         else:
           errors.append(f'{prefix}: Expected list or dict, not {type(value)}')
 
-    traverse(self.schema)
+    traverse(checks)
     if errors:
       raise ValueError('Invalid schema.\n\n' + '\n'.join(errors))
     return flat
 
-  def _squeeze(self, n: int = 1) -> 'Schema':
+  @staticmethod
+  def _squeeze(checks: SchemaDict, n: int = 1) -> SchemaDict:
     """
-    Squeeze redundancy out of a schema.
+    Squeeze redundancy out of schema checks.
 
     Examples
     --------
-    >>> schema = Schema({
+    >>> checks = {
     ...   Table('x'): {
     ...     Table(): [],
     ...     Table(): [Check.has_columns(['x'])]
@@ -128,13 +130,13 @@ class Schema:
     ...     Column('x'): [Check.not_null()],
     ...     Column('x'): [Check.unique()]
     ...   }
-    ... })
-    >>> schema._squeeze()
-    Schema({Table('x'):
-        [Check.has_columns(columns=['x'], fill=False)],
-      Table('x'):
-        {Column('x'):
-          [Check.not_null(), Check.unique()]}})
+    ... }
+    >>> Schema._squeeze(checks)
+    {Table('x'):
+      [Check.has_columns(columns=['x'], fill=False)],
+    Table('x'):
+      {Column('x'):
+        [Check.not_null(), Check.unique()]}}
     """
     # Drop keys with no checks
     def drop_empty(obj: SchemaDict) -> None:
@@ -175,75 +177,108 @@ class Schema:
         if isinstance(value, dict):
           obj[key] = unwrap_singletons(value, base=key)
       return obj
-    for _ in range(n):
-      drop_empty(self.schema)
-      merge_equal_siblings(self.schema)
-      unwrap_singletons(self.schema)
-    return self
 
-  def _filter(self, input: Data, target: Target) -> FlatSchemaDict:
+    checks = copylib.deepcopy(checks)
+    for _ in range(n):
+      drop_empty(checks)
+      merge_equal_siblings(checks)
+      unwrap_singletons(checks)
+    return checks
+
+  @staticmethod
+  def _filter(checks: SchemaDict, target: Target) -> FlatSchemaDict:
     """
-    Filter schema after flattening based on input data and name.
+    Flatten, filter, and assign checks based on input data and name.
 
     Examples
     --------
-    >>> schema = Schema({
+    >>> checks = {
     ...   Table(): [Check.has_columns(['x'])],
     ...   Column(): [Check.not_null()],
     ...   Column('x'): [Check.unique()],
-    ... })
-    >>> dfs = {'a': pd.DataFrame({'x': [0], 'y': [1]})}
-    >>> schema._filter(dfs, Tables())
-    {Table('a'): Check.has_columns(columns=['x'], fill=False),
-    Column('x', table='a'): Check.not_null(),
-    Column('y', table='a'): Check.not_null(),
-    Column('x', table='a'): Check.unique()}
-    >>> schema._filter(dfs['a'], Table('a'))
-    {Table('a'): Check.has_columns(columns=['x'], fill=False),
-    Column('x', table='a'): Check.not_null(),
-    Column('y', table='a'): Check.not_null(),
-    Column('x', table='a'): Check.unique()}
-    >>> schema._filter(dfs['a'], Table())
+    ... }
+    >>> Schema._filter(checks, Tables())
     {Table(): Check.has_columns(columns=['x'], fill=False),
-    Column('x'): Check.not_null(),
-    Column('y'): Check.not_null(),
+    Column(): Check.not_null(),
     Column('x'): Check.unique()}
-    >>> schema._filter(dfs['a']['x'], Column('x', table='a'))
+    >>> Schema._filter(checks, Table('a'))
+    {Table('a'): Check.has_columns(columns=['x'], fill=False),
+    Column(): Check.not_null(),
+    Column('x'): Check.unique()}
+    >>> Schema._filter(checks, Column('x', table='a'))
     {Column('x', table='a'): Check.not_null(),
     Column('x', table='a'): Check.unique()}
-    >>> schema._filter(dfs['a']['x'], Column('x'))
+    >>> Schema._filter(checks, Column('x'))
     {Column('x'): Check.not_null(), Column('x'): Check.unique()}
-    >>> schema._filter(dfs['a']['x'], Column())
+    >>> Schema._filter(checks, Column())
     {Column(): Check.not_null()}
     """
     filtered = {}
-    for key, check in self._flatten().items():
+    for key, check in Schema._flatten(checks).items():
       if key.equals(target):
         filtered[key] = check
       elif key.matches(target):
         filtered[target.copy()] = check
       elif key in target:
-        if isinstance(key, (Column, Table)) and key.table is not None:
-          filtered[key] = check
-        elif isinstance(key, Table):
-          filtered.update({Table(table): check for table in input})
-        elif isinstance(key, Column):
-          if isinstance(target, Table):
-            columns = list(input) if key.column is None else [key.column]
-            filtered.update(
-              {Column(column, target.table): check for column in columns}
-            )
-          elif isinstance(target, Tables):
-            for table in input:
-              filtered.update(
-                {
-                  Column(column, table): check
-                  for column in
-                  (input[table] if key.column is None else [key.column])
-                  if column in input[table]
-                }
-              )
+        filtered[key] = check
     return filtered
+
+  @staticmethod
+  def _expand_check(
+    key: Target, check: Check, data: Data, name: Target
+  ) -> SchemaDict:
+    """
+    Assign check based on input data and name.
+
+    Assumes that `key` has already been filtered by :meth:`_filter`.
+
+    Examples
+    --------
+    >>> checks = {
+    ...   Table(): [Check.has_columns(['x'])],
+    ...   Column(): [Check.not_null()],
+    ...   Column('x'): [Check.unique()],
+    ... }
+    >>> checks = Schema._filter(checks, target=Tables())
+    >>> dfs = {'a': pd.DataFrame({'x': [0], 'y': [1]})}
+    >>> Schema._expand_check(Table(), Check.has_columns(['x']), dfs, Tables())
+    {Table('a'): Check.has_columns(columns=['x'], fill=False)}
+    >>> Schema._expand_check(Column(), Check.not_null(), dfs, Tables())
+    {Column('x', table='a'): Check.not_null(),
+    Column('y', table='a'): Check.not_null()}
+    >>> Schema._expand_check(Column('x'), Check.unique(), dfs, Tables())
+    {Column('x', table='a'): Check.unique()}
+    >>> Schema._expand_check(Column('x'), Check.unique(), dfs['a'], Table())
+    {Column('x'): Check.unique()}
+    >>> Schema._expand_check(Column(), Check.not_null(), dfs['a']['x'], Column())
+    {Column(): Check.not_null()}
+    """
+    # Matching keys replaced with equal keys by _filter
+    if key.equals(name):
+      return {key: check}
+    # Only keys in target should remain
+    assigned = {}
+    if isinstance(key, (Column, Table)) and key.table is not None:
+      assigned[key] = check
+    elif isinstance(key, Table):
+      assigned.update({Table(table): check for table in data})
+    elif isinstance(key, Column):
+      if isinstance(name, Table):
+        columns = list(data) if key.column is None else [key.column]
+        assigned.update(
+          {Column(column, name.table): check for column in columns}
+        )
+      elif isinstance(name, Tables):
+        for table in data:
+          assigned.update(
+            {
+              Column(column, table): check
+              for column in
+              (data[table] if key.column is None else [key.column])
+              if column in data[table]
+            }
+          )
+    return assigned
 
   def __call__(
     self,
@@ -292,6 +327,26 @@ class Schema:
     >>> df = pd.DataFrame({'y': s})
     >>> schema(df).results[1].message
     "Missing required inputs [Column('x')]"
+
+    More complex example where elements are renamed, influencing choice of
+    later wildcard checks.
+
+    >>> df = pd.DataFrame(columns=['x', 'y'])
+    >>> schema = Schema({
+    ...   Table(): [Check(lambda df: df.rename(columns={'x': 'z'}), test=False)],
+    ...   Column(): [Check(lambda s: s.empty)]
+    ... })
+    >>> report = schema(df)
+    >>> report.results[1].target
+    Column('z')
+    >>> dfs = {'x': df}
+    >>> schema = Schema({
+    ...   Tables(): [Check(lambda dfs: {'z': dfs['x']}, test=False)],
+    ...   Table(): [Check(lambda df: df.empty)]
+    ... })
+    >>> report = schema(dfs)
+    >>> report.results[1].target
+    Table('z')
     """
     if copy:
       data = copylib.deepcopy(data)
@@ -300,44 +355,48 @@ class Schema:
     target = target or name
     input = inputs[type(target)]
     results = {}
-    for key, check in self._filter(input, target).items():
-      # print(f'{key}: {check}')
-      # Load data for check
-      args = inputs.copy()
-      if isinstance(target, Tables) and isinstance(key, (Table, Column)):
-        if not key.table in args[Tables]:
-          # Table {key.table} not in tables
-          results[key] = Result(check, target=key, missing=[Table(key.table)])
-          continue
-        args[Table] = args[Tables][key.table]
-      if isinstance(target, (Tables, Table)) and isinstance(key, Column):
-        if not key.column in args[Table]:
-          # Column {key.column} not in table {key.table}
-          results[key] = Result(
-            check, target=key, missing=[Column(key.column, table=key.table)]
-          )
-          continue
-        args[Column] = args[Table][key.column]
-      # Load updated data for name
-      data = args[type(name)]
-      # Run check
-      result = check(data, name=name, target=key)
-      # Reassign new value
-      output = result.output
-      check_class = list(check.inputs.values())[0]
-      if output is not None and output is not args[check_class]:
-        if type(target) is check_class:
-          inputs[check_class] = output
-        elif type(target) is Tables:
-          if check_class is Table:
-            inputs[Tables][key.table] = output
-          else:
+    for okey, ocheck in Schema._filter(self.schema, target).items():
+      expanded = Schema._expand_check(
+        key=okey, check=ocheck, data=inputs[type(name)], name=name
+      )
+      for key, check in expanded.items():
+        # print(f'{key}: {check}')
+        # Load data for check
+        args = inputs.copy()
+        if isinstance(target, Tables) and isinstance(key, (Table, Column)):
+          if not key.table in args[Tables]:
+            # Table {key.table} not in tables
+            results[key] = Result(check, target=key, missing=[Table(key.table)])
+            continue
+          args[Table] = args[Tables][key.table]
+        if isinstance(target, (Tables, Table)) and isinstance(key, Column):
+          if not key.column in args[Table]:
+            # Column {key.column} not in table {key.table}
+            results[key] = Result(
+              check, target=key, missing=[Column(key.column, table=key.table)]
+            )
+            continue
+          args[Column] = args[Table][key.column]
+        # Load updated data for name
+        data = args[type(name)]
+        # Run check
+        result = check(data, name=name, target=key)
+        # Reassign new value
+        output = result.output
+        check_class = list(check.inputs.values())[0]
+        if output is not None and output is not args[check_class]:
+          if type(target) is check_class:
+            inputs[check_class] = output
+          elif type(target) is Tables:
+            if check_class is Table:
+              inputs[Tables][key.table] = output
+            else:
+              # Column
+              inputs[Tables][key.table][key.column] = output
+          elif type(target) is Table:
             # Column
-            inputs[Tables][key.table][key.column] = output
-        elif type(target) is Table:
-          # Column
-          inputs[Table][key.column] = output
-      results[key] = result
+            inputs[Table][key.column] = output
+        results[key] = result
     output = inputs[type(target)]
     return Report(
       list(results.values()), target=target, input=input, output=output

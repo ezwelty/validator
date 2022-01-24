@@ -72,7 +72,7 @@ def field_to_schema(field: dict, schema: dict = None) -> Schema:
       checks.append(Check.matches_regex(v))
     elif k == 'enum' and v:
       checks.append(Check.in_list(v))
-  return Schema({Column(field.get('name')): checks})._squeeze()
+  return Schema(Schema._squeeze({Column(field.get('name')): checks}))
 
 def schema_to_schema(
   schema: dict,
@@ -186,8 +186,7 @@ def schema_to_schema(
   # Column checks
   for field in schema['fields']:
     temp = field_to_schema(field, schema=schema)
-    if temp._flatten():
-      flow.update(temp.schema)
+    flow.update(temp.schema)
   # Check primary and foreign keys after columns
   checks = []
   if primary_key and len(primary_key) > 1:
@@ -204,7 +203,7 @@ def schema_to_schema(
       else:
         checks.append(Check.in_columns({x: y for x, y in zip(local, foreign)}))
   flow[Table()] = checks
-  return Schema(flow)._squeeze()
+  return Schema(Schema._squeeze(flow))
 
 def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
   """
@@ -250,7 +249,7 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
       checks.append(Check.in_columns({x: y for x, y in zip(local, foreign)}))
   flow[Table()] = checks
   flow = {Table(resource['name']): flow}
-  return Schema(flow)._squeeze(2)
+  return Schema(Schema._squeeze(flow, n=2))
 
 def package_to_schema(
   package: dict,
@@ -352,4 +351,4 @@ def package_to_schema(
             )
           )
     flow[Table(resource['name'])] = tasks
-  return Schema(flow)._squeeze(2)
+  return Schema(Schema._squeeze(flow, n=2))

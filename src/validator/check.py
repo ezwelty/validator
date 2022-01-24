@@ -457,15 +457,19 @@ class Check:
     else:
       valid, output = None, result
     # Process test result
-    try:
-      if isinstance(valid, dict):
-        valid = pd.Series(valid, dtype='boolean')
-      elif isinstance(valid, pd.Series) and not pd.api.types.is_bool_dtype(valid):
-        valid = valid.astype('boolean', copy=False)
-    except TypeError:
-      raise ValueError(
-        f'Test result could not be cast to a boolean pandas.Series'
-      )
+    if valid is not None and not isinstance(valid, bool):
+      try:
+        if isinstance(valid, dict):
+          valid = pd.Series(valid, dtype='boolean')
+        elif isinstance(valid, pd.Series):
+          if not pd.api.types.is_bool_dtype(valid):
+            valid = valid.astype('boolean', copy=False)
+        else:
+          raise TypeError()
+      except TypeError:
+        raise ValueError(
+          f'Test result cannot be cast to a boolean pandas.Series'
+        )
     return Result(self, target=target, valid=valid, input=input, output=output)
 
   def serialize(self) -> Dict[str, Any]:
