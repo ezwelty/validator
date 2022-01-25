@@ -247,8 +247,9 @@ def columns_not_null(
   """
   valid = df.notnull().any(axis='index')
   if drop:
+    # Use drop to ensure a copy (and not a view) is returned.
+    df = df.drop(columns=valid[~valid].index)
     valid = valid[valid]
-    df = df[valid.index]
   return valid, df
 
 @register_check(message='Row contains only null values')
@@ -277,7 +278,8 @@ def rows_not_null(
   """
   valid = df.notnull().any(axis='columns')
   if drop:
-    df = df[valid]
+    # Use drop to ensure a copy (and not a view) is returned.
+    df = df.drop(index=valid[~valid].index)
     valid = valid[valid]
   return valid, df
 
