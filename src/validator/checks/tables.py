@@ -20,11 +20,11 @@ def has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable],
 
 @register_check(message='Table not one of {tables}')
 def only_has_tables(dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], drop: bool = False) -> Dict[Hashable, bool]:
-  for table in dfs:
-    if table not in tables:
-      if drop:
-        # NOTE: Modifies dictionary in place
-        del dfs[table]
+  if drop:
+    dropped = [table for table in dfs if table not in tables]
+    for table in dropped:
+      # NOTE: Modifies dictionary in place
+      del dfs[table]
   return {table: table in tables for table in dfs}
 
 @register_check(message='Table does not follow order {tables}')

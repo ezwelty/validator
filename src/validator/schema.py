@@ -349,13 +349,40 @@ class Schema:
     >>> report = schema(dfs)
     >>> report.results[1].target
     Table('z')
+
+    Example where elements are missing and thus skipped.
+
+    >>> dfs = {'x': pd.DataFrame()}
+    >>> check = Check(lambda df: df.empty)
+    >>> check(dfs, target=Table('y'))
+    Traceback (most recent call last):
+      ...
+    ValueError: Failed to extract data for Table('y') from data
+    >>> schema = Schema({Table('y'): check})
+    >>> schema(dfs).counts
+    {'skip': 1}
+
+    Example where input is modified in place.
+
+    >>> dfs = {'x': pd.DataFrame(), 'y': pd.DataFrame()}
+    >>> schema = Schema({
+    ...   Tables(): Check.only_has_tables(['x'], drop=True),
+    ...   Table(): Check(lambda df: df.empty)
+    ... })
+    >>> schema(dfs).counts
+    {'pass': 2}
     """
-    if copy:
-      data = copylib.deepcopy(data)
-    inputs = extract_data(data, name=name, target=target)
     name = name or classify_data(data)()
     target = target or name
-    input = inputs[type(target)]
+    inputs = extract_data(
+      copylib.deepcopy(data) if copy else data,
+      name=name,
+      target=target
+    )
+    if copy:
+      input = extract_data(data, name=name, target=target)[type(target)]
+    else:
+      input = inputs[type(target)]
     results = {}
     for okey, ocheck in Schema._filter(self.schema, target).items():
       expanded = Schema._expand_check(
@@ -363,7 +390,7 @@ class Schema:
       )
       for key, check in expanded.items():
         # print(f'{key}: {check}')
-        # Load data for check
+        # Pre-check existence of target in data to avoid Check.__call__() error
         args = inputs.copy()
         if isinstance(target, Tables) and isinstance(key, (Table, Column)):
           if not key.table in args[Tables]:
@@ -378,11 +405,8 @@ class Schema:
               check, target=key, missing=[Column(key.column, table=key.table)]
             )
             continue
-          args[Column] = args[Table][key.column]
-        # Load updated data for name
-        data = args[type(name)]
         # Run check
-        result = check(data, name=name, target=key)
+        result = check(inputs[type(name)], name=name, target=key)
         # Reassign new value
         output = result.output
         check_class = list(check.inputs.values())[0]
