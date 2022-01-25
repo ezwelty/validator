@@ -1,5 +1,5 @@
 import copy as copylib
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -630,3 +630,61 @@ class Report:
       ])
       df.sort_index(inplace=True)
     return df
+
+  def project(self, data: Data, name: Target = None) -> Tuple['Report', 'Report']:
+    """
+    Project report onto data.
+
+    Example
+    -------
+    >>> schema = Schema({
+    ...   Column('x'): Check.not_null(),
+    ...   Column('y'): Check.not_null()
+    ... })
+    >>> df = pd.DataFrame({'x': [0, pd.NA], 'y': [0, 1]})
+    >>> report = schema(df)
+    >>> report.project(df)
+    (Report(Table(), valid=False, counts={'fail': 1, 'pass': 1}),
+    Report(Table(), valid=None, counts={}))
+    >>> report.project(df[['x']])
+    (Report(Table(), valid=False, counts={'fail': 1}),
+    Report(Table(), valid=True, counts={'pass': 1}))
+    >>> rin, rout = report.project(df[['x']].iloc[:1])
+    >>> rin.results[0].valid
+    0    True
+    Name: x, dtype: bool
+    >>> rout.results[0].valid
+    1   False
+    Name: x, dtype: bool
+    """
+    name = name or classify_data(data)()
+    ins, outs = [], []
+    for result in self.results:
+      try:
+        inputs = extract_data(data, name=name, target=result.target)
+      except ValueError:
+        outs.append(result)
+        continue
+      if result.valid is None or isinstance(result.valid, bool):
+        ins.append(result)
+        continue
+      input = inputs[type(result.target)]
+      if isinstance(result.target, Tables):
+        index = pd.Index(input.keys())
+      elif isinstance(result.target, Table) and result.check.axis == 'column':
+        index = input.columns
+      elif isinstance(result.target, (Table, Column)) and result.check.axis == 'row':
+        index = input.index
+      else:
+        assert False, 'Unexpected result format'
+      mask = result.valid.index.isin(index)
+      count = mask.sum()
+      if count == 0:
+        outs.append(result)
+      elif count == mask.size:
+        ins.append(result)
+      else:
+        base = dict(check=result.check, target=result.target)
+        ins.append(Result(**base, valid=result.valid[mask]))
+        outs.append(Result(**base, valid=result.valid[~mask]))
+    return Report(results=ins, target=name), Report(results=outs, target=name)
