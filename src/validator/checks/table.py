@@ -170,15 +170,18 @@ def matches_foreign_columns(
       and column names for `table` as values.
 
   Example:
-    >>> df = pd.DataFrame({'id': [0, 0, 1, 1], 'x': [0, 1, 1, pd.NA]})
+    >>> df = pd.DataFrame(
+    ...   {'id': [0, 0, 1, 1], 'x': [0, 1, 1, pd.NA]},
+    ...   index=[0, 1, 3, 4]
+    ... )
     >>> dfs = {'table': pd.DataFrame({'rid': [0, 1], 'rx': [0, 1]})}
     >>> matches_foreign_columns(
     ...   df, dfs, table='table', join={'id': 'rid'}, columns={'x': 'rx'}
     ... )
     0     True
     1    False
-    2     True
-    3    False
+    3     True
+    4    False
     dtype: bool
   """
   local = df[[*join]]
@@ -192,6 +195,8 @@ def matches_foreign_columns(
     validate='many_to_one',
     copy=False
   )
+  # Preserve original index, which is guaranteed for left many-to-one merge
+  joined.index = local.index
   ref_columns = [
     col if col in joined else f'{col}.y' for col in columns.values()
   ]
