@@ -18,18 +18,18 @@ class Schema:
   ----------
   schema
     Schema definition as a dictionary, where each key is a :class:`Target`
-    and each value is either a :type:`list` of :class:`Check` or a dictionary
-    of subschemas. Since each :class:`Target` instance is unique,
+    and each value is either a :class:`Check`, :type:`list` of :class:`Check`,
+    or a dictionary of subschemas. Since each :class:`Target` is unique,
     they can repeated at will (e.g. `{Column(): [], Column(): []}`).
 
-    Any nesting is allowed, with two exceptions:
-    - The target column or table name cannot be changed once set. For example,
-    `{Table('X'): {Table('X'): []}}` and `{Table('X'): {Table(): []}}`
-    are valid (`Table()` inherits the table name from `Table('x')`), but
-    `{Table('X'): {Table('Y'): []}}` is not.
-    - Unnamed columns cannot be nested under named tables. For example,
-    `{Table('X'): {Column('Y'): []}}` is valid but
-    `{Table('X'): {Column(): []}}` is not.
+    Any nesting is allowed, except that the target column or table name cannot
+    be changed once set. For example, `{Table('X'): {Table('X'): []}}` and
+    `{Table('X'): {Table(): []}}` are valid (`Table()` inherits the table name
+    from `Table('x')`), but `{Table('X'): {Table('Y'): []}}` is not.
+
+    Wildcard targets are applied to all elements available at check runtime.
+    For example, `Column()` is applied to all columns in the data by the time
+    it is evaluated.
 
   Raises
   ------
@@ -92,6 +92,8 @@ class Schema:
           errors.append(f'{prefix}: {error}')
           continue
         # Parse dictionary value
+        if isinstance(value, Check):
+          value = [value]
         if isinstance(value, list):
           for i, check in enumerate(value):
             if isinstance(check, Check):
@@ -193,9 +195,9 @@ class Schema:
     Examples
     --------
     >>> checks = {
-    ...   Table(): [Check.has_columns(['x'])],
-    ...   Column(): [Check.not_null()],
-    ...   Column('x'): [Check.unique()],
+    ...   Table(): Check.has_columns(['x']),
+    ...   Column(): Check.not_null(),
+    ...   Column('x'): Check.unique(),
     ... }
     >>> Schema._filter(checks, Tables())
     {Table(): Check.has_columns(columns=['x'], fill=False),
@@ -235,9 +237,9 @@ class Schema:
     Examples
     --------
     >>> checks = {
-    ...   Table(): [Check.has_columns(['x'])],
-    ...   Column(): [Check.not_null()],
-    ...   Column('x'): [Check.unique()],
+    ...   Table(): Check.has_columns(['x']),
+    ...   Column(): Check.not_null(),
+    ...   Column('x'): Check.unique(),
     ... }
     >>> checks = Schema._filter(checks, target=Tables())
     >>> dfs = {'a': pd.DataFrame({'x': [0], 'y': [1]})}
@@ -311,8 +313,8 @@ class Schema:
     Examples
     --------
     >>> schema = Schema({
-    ...   Column(): [Check.not_null()],
-    ...   Column('x'): [Check.unique()]
+    ...   Column(): Check.not_null(),
+    ...   Column('x'): Check.unique()
     ... })
     >>> s = pd.Series([0, 1])
     >>> schema(s).counts
@@ -333,16 +335,16 @@ class Schema:
 
     >>> df = pd.DataFrame(columns=['x', 'y'])
     >>> schema = Schema({
-    ...   Table(): [Check(lambda df: df.rename(columns={'x': 'z'}), test=False)],
-    ...   Column(): [Check(lambda s: s.empty)]
+    ...   Table(): Check(lambda df: df.rename(columns={'x': 'z'}), test=False),
+    ...   Column(): Check(lambda s: s.empty)
     ... })
     >>> report = schema(df)
     >>> report.results[1].target
     Column('z')
     >>> dfs = {'x': df}
     >>> schema = Schema({
-    ...   Tables(): [Check(lambda dfs: {'z': dfs['x']}, test=False)],
-    ...   Table(): [Check(lambda df: df.empty)]
+    ...   Tables(): Check(lambda dfs: {'z': dfs['x']}, test=False),
+    ...   Table(): Check(lambda df: df.empty)
     ... })
     >>> report = schema(dfs)
     >>> report.results[1].target
@@ -423,8 +425,8 @@ class Schema:
     ...   return s.isin(values)
     >>>
     >>> schema = Schema({Table('X'): {
-    ...   Table(): [Check.has_column('x')],
-    ...   Column('x'): [Check.in_values([0, 1])]
+    ...   Table(): Check.has_column('x'),
+    ...   Column('x'): Check.in_values([0, 1])
     ... }})
     >>> d = schema.serialize()
     >>> print(yaml.dump(d, sort_keys=False))
@@ -451,6 +453,8 @@ class Schema:
         item = {**target.__dict__}
         if isinstance(target, Column) and item['table'] is None:
           del item['table']
+        if isinstance(subvalue, Check):
+          subvalue = [subvalue]
         if isinstance(subvalue, list):
           item['checks'] = [check.serialize() for check in subvalue]
         else:
@@ -503,10 +507,10 @@ class Schema:
 
     Examples
     --------
-    >>> x = Schema({Column('x'): [Check(lambda s: s.notnull())]})
-    >>> y = Schema({Column('y'): [Check(lambda s: s.notnull())]})
+    >>> x = Schema({Column('x'): Check(lambda s: s.notnull())})
+    >>> y = Schema({Column('y'): Check(lambda s: s.notnull())})
     >>> (x + y).schema
-    {Column('x'): [Check.<lambda>()], Column('y'): [Check.<lambda>()]}
+    {Column('x'): Check.<lambda>(), Column('y'): Check.<lambda>()}
     """
     if not isinstance(other, self.__class__):
       return other + self

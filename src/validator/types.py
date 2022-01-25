@@ -35,5 +35,5 @@ class CheckFunction(Protocol):
   ) -> Union[Valid, Data, Tuple[Valid, Data]]: ...
 
 # Recursive type alias supported by Pylance and maybe other type checkers
-SchemaDict = Dict[Target, Union[List[Check], 'SchemaDict']]
+SchemaDict = Dict[Target, Union[Check, List[Check], 'SchemaDict']]
 FlatSchemaDict = Dict[Target, Check]
