@@ -575,7 +575,10 @@ class Result:
     """Result code."""
     if self.error is not None:
       return 'error'
-    if self.missing is not None:
+    if (
+      self.missing is not None or
+      (self.valid is None and self.output is None)
+    ):
       return 'skip'
     if (
       self.valid is True or
