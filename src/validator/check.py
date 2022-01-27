@@ -185,6 +185,8 @@ class Check:
     columns of `Tables` (e.g. `[Table('main'), Column('other',
     table='main')]`). This allows the check to be skipped if a parent
     is present but a required child is missing.
+    If `Callable`, can accept any of the keyword arguments of `fn` (`params`)
+    and must return `List[Target]`.
   test
     Whether the returned value (if not a tuple) is a test result
     or transformed data (see `fn`).
@@ -293,7 +295,7 @@ class Check:
     self.axis = _test_axis(inputs=self.inputs, axis=axis)
     self.params = _test_params(fn=fn, params=params)
     if callable(required):
-      required: List[Target] = filter_kwargs(required, self.params)
+      required: List[Target] = filter_kwargs(required, **self.params)
     self.required = _test_required(inputs=self.inputs, required=required)
     self.test = test
     self.message = message
