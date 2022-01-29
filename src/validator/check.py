@@ -602,7 +602,7 @@ class Result:
     Human-readable message describing the problem (if any).
 
     The content depends on the :attr:`code`:
-    - skip: Which required data were missing.
+    - skip and missing: Which required data were missing.
     - error: The message of the error raised by :attr:`check`.`fn`.
     - fail: :attr:`check`.`message`, formatted based on :attr:`check`.`params`.
     """
@@ -611,7 +611,7 @@ class Result:
       return eval(f"f'{self.check.message}'", None, self.check.params)
     if code == 'error':
       return str(self.error)
-    if code == 'skip':
+    if code == 'skip' and self.missing:
       return f'Missing required inputs {self.missing}'
 
   @property
