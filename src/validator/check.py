@@ -650,10 +650,14 @@ class Result:
   @property
   def value(self) -> Optional[List[Hashable]]:
     """Invalid values."""
-    if self.axis == 'row' and isinstance(self.target, Column):
-      if self.valid.index is self.input.index:
-        return list(self.input[~self.valid])
-      return list(self.input[self.valid[~self.valid].index])
+    return (
+      (
+        self.axis == 'row' and
+        isinstance(self.target, Column) and
+        list(self.input[self.valid[~self.valid].index])
+      ) or
+      None
+    )
 
   def _to_dict(self) -> dict:
     """Get a dictionary representation of the result."""
