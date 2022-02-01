@@ -45,12 +45,16 @@ def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:
 @register_check(message='Value < {min}')
 def greater_than_or_equal_to(s: pd.Series, *, min: Any) -> pd.Series:
   """Check whether values are greater than or equal to a minimum."""
-  return s.ge(min)
+  if pd.api.types.is_extension_array_dtype(s):
+    return s.ge(min)
+  return s.isnull() | s.ge(min)
 
 @register_check(message='Value > {max}')
 def less_than_or_equal_to(s: pd.Series, *, max: Any) -> pd.Series:
   """Check whether values are less than or equal to a maximum."""
-  return s.le(max)
+  if pd.api.types.is_extension_array_dtype(s):
+    return s.le(min)
+  return s.isnull() | s.le(max)
 
 @register_check(message='Length < {min}')
 def length_greater_than_or_equal_to(s: pd.Series, *, min: int) -> pd.Series:
