@@ -574,6 +574,43 @@ class Report:
       self.__class__.__name__, self.target, valid=self.valid, counts=self.counts
     )
 
+  def __add__(self, other: 'Report') -> 'Report':
+    """
+    Concatenate two reports.
+
+    Parameters
+    ----------
+    other
+      Report to concatenate to the end of the first report.
+
+    Example
+    -------
+    >>> x = Schema({Column('x'): Check(lambda s: s.notnull())})
+    >>> y = Schema({Column('y'): Check(lambda s: s.notnull())})
+    >>> df = pd.DataFrame({'x': [0], 'y': [1]})
+    >>> reports = x(df), y(df)
+    >>> report = reports[0] + reports[1]
+    >>> report
+    Report(Table(), valid=True, counts={'pass': 2})
+    >>> report.input is reports[0].input
+    True
+    >>> report.output is reports[1].output
+    True
+    """
+    if not isinstance(other, self.__class__):
+      return other + self
+    if not self.target.equals(other.target):
+      raise ValueError(
+        'Cannot concatenate reports with different targets: ' +
+        f'{self.target}, {other.target}'
+      )
+    return self.__class__(
+      results=self.results + other.results,
+      target=self.target,
+      input=self.input,
+      output=other.output
+    )
+
   @property
   def counts(self) -> Dict[str, int]:
     """Number of results by result code."""
