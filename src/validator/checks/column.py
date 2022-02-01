@@ -53,7 +53,7 @@ def greater_than_or_equal_to(s: pd.Series, *, min: Any) -> pd.Series:
 def less_than_or_equal_to(s: pd.Series, *, max: Any) -> pd.Series:
   """Check whether values are less than or equal to a maximum."""
   if pd.api.types.is_extension_array_dtype(s):
-    return s.le(min)
+    return s.le(max)
   return s.isnull() | s.le(max)
 
 @register_check(message='Length < {min}')
