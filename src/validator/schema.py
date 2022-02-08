@@ -287,7 +287,8 @@ class Schema:
     data: Data = None,
     name: Target = None,
     target: Target = None,
-    copy: bool = True
+    copy: bool = True,
+    verbose: bool = False
   ) -> 'Report':
     """
     Run the checks on the provided tabular data.
@@ -389,7 +390,8 @@ class Schema:
         key=okey, check=ocheck, data=inputs[type(name)], name=name
       )
       for key, check in expanded.items():
-        # print(f'{key}: {check}')
+        if verbose:
+          print(f'{key}: {check}')
         # Pre-check existence of target in data to avoid Check.__call__() error
         args = inputs.copy()
         if isinstance(target, Tables) and isinstance(key, (Table, Column)):
@@ -410,18 +412,21 @@ class Schema:
         # Reassign new value
         output = result.output
         check_class = list(check.inputs.values())[0]
-        if output is not None and output is not args[check_class]:
-          if type(target) is check_class:
-            inputs[check_class] = output
-          elif type(target) is Tables:
-            if check_class is Table:
-              inputs[Tables][key.table] = output
-            else:
+        try:
+          if output is not None and output is not args[check_class]:
+            if type(target) is check_class:
+              inputs[check_class] = output
+            elif type(target) is Tables:
+              if check_class is Table:
+                inputs[Tables][key.table] = output
+              else:
+                # Column
+                inputs[Tables][key.table][key.column] = output
+            elif type(target) is Table:
               # Column
-              inputs[Tables][key.table][key.column] = output
-          elif type(target) is Table:
-            # Column
-            inputs[Table][key.column] = output
+              inputs[Table][key.column] = output
+        except Exception as e:
+          raise ValueError(f'Failed to set output of {check}.\n- error: {e}\n-output: {output}')
         results[key] = result
     output = inputs[type(target)]
     return Report(
