@@ -191,12 +191,18 @@ def matches_foreign_columns(
     >>> df.loc[valid.index[~valid]]
        id  x
     1   0  1
+
+    >>> dfs = {'table': pd.DataFrame({'id': [2], 'x': [0]})}
+    >>> matches_foreign_columns(
+    ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
+    ... )
+    Series([], dtype: bool)
   """
   # Ignore join keys or lookup columns with null
   local = df[[*join, *columns]].dropna()
   foreign = dfs[table][[*join.values(), *columns.values()]].dropna()
-  # Preserve left index
-  local['__index__'] = local.index
+  # Track left row numbers
+  local['__row__'] = range(len(local))
   joined = local.merge(
     foreign,
     how='inner',
@@ -213,14 +219,18 @@ def matches_foreign_columns(
   # In case of many-to-many, require all are equal
   valid = (
     joined
-    .groupby('__index__', sort=False)
+    .groupby('__row__', sort=False)
     .apply(
       lambda g: (
         g[local_cols].rename(columns=local_to_foreign) == g[foreign_cols]
       ).all(None)
     )
   )
-  valid.index.name = df.index.name
+  if isinstance(valid, pd.DataFrame):
+    # groupby-apply returns empty frame if join is empty
+    valid = pd.Series(dtype=bool)
+  # Restore original index
+  valid.index = local.index[valid.index]
   return valid
 
 @register_check(message='Column with new name already exists', axis='column')
