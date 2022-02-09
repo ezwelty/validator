@@ -184,9 +184,9 @@ def matches_foreign_columns(
     ...   {'id': [0, 0, 1, 1], 'x': [0, 1, 1, pd.NA]},
     ...   index=[0, 1, 3, 4]
     ... )
-    >>> dfs = {'table': pd.DataFrame({'rid': [0, 1], 'rx': [0, 1]})}
+    >>> dfs = {'table': pd.DataFrame({'id': [0, 1], 'x': [0, 1]})}
     >>> valid = matches_foreign_columns(
-    ...   df, dfs, table='table', join={'id': 'rid'}, columns={'x': 'rx'}
+    ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
     ... )
     >>> df.loc[valid.index[~valid]]
        id  x
@@ -209,13 +209,14 @@ def matches_foreign_columns(
   foreign_cols = [
     f'{col}.y' if col not in joined else col for col in columns.values()
   ]
+  local_to_foreign = dict(zip(local_cols, foreign_cols))
   # In case of many-to-many, require all are equal
   valid = (
     joined
     .groupby('__index__', sort=False)
     .apply(
       lambda g: (
-        g[local_cols].rename(columns=columns) == g[foreign_cols]
+        g[local_cols].rename(columns=local_to_foreign) == g[foreign_cols]
       ).all(None)
     )
   )
