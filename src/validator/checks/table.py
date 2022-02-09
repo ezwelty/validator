@@ -169,7 +169,8 @@ def matches_foreign_columns(
   """
   Check whether rows match a foreign table following a join.
 
-  Requires a many-to-one relationship with the foreign table.
+  Rows in either table with one or more nulls in a join or match column are
+  ignored.
 
   Args:
     table: Foreign table name.
@@ -184,33 +185,42 @@ def matches_foreign_columns(
     ...   index=[0, 1, 3, 4]
     ... )
     >>> dfs = {'table': pd.DataFrame({'rid': [0, 1], 'rx': [0, 1]})}
-    >>> matches_foreign_columns(
+    >>> valid = matches_foreign_columns(
     ...   df, dfs, table='table', join={'id': 'rid'}, columns={'x': 'rx'}
     ... )
-    0     True
-    1    False
-    3     True
-    4    False
-    dtype: bool
+    >>> df.loc[valid.index[~valid]]
+       id  x
+    1   0  1
   """
-  local = df[[*join]]
-  foreign = dfs[table][[*join.values(), *columns.values()]]
+  # Ignore join keys or lookup columns with null
+  local = df[[*join, *columns]].dropna()
+  foreign = dfs[table][[*join.values(), *columns.values()]].dropna()
+  # Preserve left index
+  local['__index__'] = local.index
   joined = local.merge(
     foreign,
-    how='left',
+    how='inner',
     left_on=list(join),
     right_on=list(join.values()),
-    suffixes=[None, '.y'],
-    validate='many_to_one',
+    suffixes=['.x', '.y'],
     copy=False
   )
-  # Preserve original index, which is guaranteed for left many-to-one merge
-  joined.index = local.index
-  ref_columns = [
-    col if col in joined else f'{col}.y' for col in columns.values()
+  local_cols = [f'{col}.x' if col not in joined else col for col in columns]
+  foreign_cols = [
+    f'{col}.y' if col not in joined else col for col in columns.values()
   ]
-  refs = joined[ref_columns].rename(columns={v: k for k, v in columns.items()})
-  return (df[[*columns]] == refs).all(axis=1)
+  # In case of many-to-many, require all are equal
+  valid = (
+    joined
+    .groupby('__index__', sort=False)
+    .apply(
+      lambda g: (
+        g[local_cols].rename(columns=columns) == g[foreign_cols]
+      ).all(None)
+    )
+  )
+  valid.index.name = df.index.name
+  return valid
 
 @register_check(message='Column with new name already exists', axis='column')
 def rename_columns(
