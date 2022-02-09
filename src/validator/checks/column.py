@@ -15,8 +15,20 @@ def not_null(s: pd.Series) -> pd.Series:
 
 @register_check(message='Duplicate value')
 def unique(s: pd.Series) -> pd.Series:
-  """Check whether values are unique."""
-  return ~s.duplicated(keep=False)
+  """
+  Check whether values are unique.
+
+  Null values are ignored.
+
+  Examples:
+    >>> s = pd.Series([0, 1, 1, pd.NA, pd.NA])
+    >>> unique(s)
+    0     True
+    1    False
+    2    False
+    dtype: bool
+  """
+  return ~s.dropna().duplicated(keep=False)
 
 @register_check(message='Value not in {values}')
 def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:

@@ -61,6 +61,8 @@ def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.S
   """
   Check whether rows are unique.
 
+  Rows with null values are ignored.
+
   Args:
     columns: Names of columns to consider for testing uniqueness.
       By default, all columns are used.
@@ -77,8 +79,15 @@ def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.S
     1    False
     2    False
     dtype: bool
+
+    >>> df = pd.DataFrame({'x': [1, pd.NA, pd.NA], 'y': [1, pd.NA, pd.NA]})
+    >>> unique_rows(df)
+    0     True
+    dtype: bool
   """
-  return ~df.duplicated(subset=columns, keep=False)
+  if columns is not None:
+    df = df[columns]
+  return ~df.dropna().duplicated(keep=False)
 
 @register_check(
   message='Not found in {list(columns.values)}',
