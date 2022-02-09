@@ -90,7 +90,7 @@ def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.S
   return ~df.dropna().duplicated(keep=False)
 
 @register_check(
-  message='Not found in {list(columns.values)}',
+  message='Not found in {list(columns.values())}',
   required=lambda columns: [Column(column) for column in [*columns, *columns.values()]]
 )
 def in_columns(df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]) -> pd.Series:
