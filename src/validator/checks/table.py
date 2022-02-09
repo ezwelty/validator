@@ -136,7 +136,6 @@ def in_foreign_columns(
     0     True
     1     True
     2    False
-    3     True
     dtype: bool
     >>> in_foreign_columns(df, dfs, table='table', columns={'y': 'y'})
     0     True
@@ -145,11 +144,10 @@ def in_foreign_columns(
     3    False
     dtype: bool
   """
-  local = df[columns.keys()]
+  local = df[columns.keys()].dropna()
   local_key = pd.MultiIndex.from_frame(local)
-  foreign_key = pd.MultiIndex.from_frame(dfs[table][columns.values()])
-  # Pass check if one or more local columns are null
-  return local_key.isin(foreign_key) | local.isnull().any(axis=1)
+  foreign_key = pd.MultiIndex.from_frame(dfs[table][columns.values()].dropna())
+  return pd.Series(local_key.isin(foreign_key), index=local.index)
 
 @register_check(
   message='Columns {list(columns.keys())} do not match {table}.{list(columns.values())} when joined on {join}',

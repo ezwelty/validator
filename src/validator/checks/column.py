@@ -122,12 +122,10 @@ def in_foreign_column(
     >>> in_foreign_column(s, dfs, table='table', column='id')
     0     True
     1    False
-    2     True
     dtype: bool
   """
-  # pd.Series.isin false for pd.NA unless pd.NA in reference
   foreign = dfs[table][column]
-  return s.isin(foreign) | s.isnull()
+  return s[not_null].isin(foreign)
 
 @register_check(message='Not of type {type}')
 def is_type(s: pd.Series, *, type: str) -> bool:
