@@ -628,17 +628,26 @@ class Report:
     return n
 
   @property
-  def valid(self) -> Optional[bool]:
+  def valid(self) -> bool:
     """
     Overall test result.
 
-    - `None` if :attr:`results` is empty or all result codes are 'skip'
     - `True` if all result codes are 'pass' or 'skip'
     - `False` otherwise
     """
-    if not self.results or all(result.code == 'skip' for result in self.results):
-      return None
     return all(result.code in ['pass', 'skip'] for result in self.results)
+
+  @property
+  def empty(self) -> bool:
+    """
+    Whether report is empty.
+
+    If :attr:`results` is empty or all result codes are 'skip'.
+    """
+    return (
+      not self.results or
+      all(result.code == 'skip' for result in self.results)
+    )
 
   def to_dataframe(self, explode: bool = False) -> pd.DataFrame:
     """
@@ -687,7 +696,7 @@ class Report:
     >>> report = schema(df)
     >>> report.project(df)
     (Report(Table(), valid=False, counts={'fail': 1, 'pass': 1}),
-    Report(Table(), valid=None, counts={}))
+    Report(Table(), valid=True, counts={}))
     >>> report.project(df[['x']])
     (Report(Table(), valid=False, counts={'fail': 1}),
     Report(Table(), valid=True, counts={'pass': 1}))
