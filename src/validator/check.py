@@ -608,7 +608,11 @@ class Result:
     """
     code = self.code
     if code == 'fail' and self.check.message is not None:
-      return eval(f"f'{self.check.message}'", None, self.check.params)
+      try:
+        return eval(f"f'{self.check.message}'", None, self.check.params)
+      except SyntaxError:
+        # In case unescaped single quotes are present in message template
+        return eval(f'f"{self.check.message}"', None, self.check.params)
     if code == 'error':
       return str(self.error)
     if code == 'skip' and self.missing:
