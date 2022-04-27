@@ -226,7 +226,9 @@ def matches_foreign_columns(
   )
   if isinstance(valid, pd.DataFrame):
     # groupby-apply returns empty frame if join is empty
-    valid = pd.Series(dtype=bool)
+    # Ensure integer index to avoid IndexError
+    # 'arrays used as indices must be of integer or boolean type'
+    valid = pd.Series(dtype=bool, index=pd.Index([], dtype=int))
   # Restore original index
   valid.index = local.index[valid.index]
   return valid
