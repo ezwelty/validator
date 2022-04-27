@@ -101,12 +101,12 @@ def table_diff(
   a: pd.DataFrame,
   b: pd.DataFrame,
   path: str,
-  flags: daff.CompareFlags = daff.CompareFlags()
+  flags: daff.CompareFlags = None
 ) -> None:
   diff = daff.diff(
     dataframe_to_string_list(a),
     dataframe_to_string_list(b),
-    flags=flags
+    flags=flags or daff.CompareFlags()
   )
   render = daff.DiffRender().render(diff)
   with open(path, 'w') as file:
