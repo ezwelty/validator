@@ -97,11 +97,16 @@ def dataframe_to_string_list(
     data = np.column_stack((index_values, data))
   return np.row_stack((header, data)).tolist()
 
-def table_diff(a: pd.DataFrame, b: pd.DataFrame, path: str) -> None:
+def table_diff(
+  a: pd.DataFrame,
+  b: pd.DataFrame,
+  path: str,
+  flags: daff.CompareFlags = daff.CompareFlags()
+) -> None:
   diff = daff.diff(
     dataframe_to_string_list(a),
     dataframe_to_string_list(b),
-    flags=daff.CompareFlags()
+    flags=flags
   )
   render = daff.DiffRender().render(diff)
   with open(path, 'w') as file:
