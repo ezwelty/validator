@@ -1,4 +1,5 @@
 from __future__ import annotations
+import datetime
 import inspect
 from inspect import Parameter, Signature
 import traceback
@@ -10,7 +11,7 @@ from typing import (
 import makefun
 import pandas as pd
 
-from .helpers import filter_kwargs, stringify_call
+from .helpers import filter_kwargs, stringify_call, Timer
 from .targets import Column, Table, Tables, Target, classify_data, extract_data
 if TYPE_CHECKING:
   from .types import Axis, CheckFunction, Data
@@ -439,19 +440,24 @@ class Check:
     ValueError
       Test result could not be cast to a boolean pandas.Series
     """
+    timer = Timer()
     inputs = extract_data(data, name=name, target=target)
     name = name or classify_data(data)()
     target = target or name
     target, missing, kwargs = self._test_call(inputs, target=target)
     input = inputs[type(target)]
     if missing:
-      return Result(self, target=target, input=input, missing=missing)
+      return Result(
+        self, target=target, input=input, missing=missing, time=timer.elapsed
+      )
     # Execute function
     try:
       result = self.fn(**kwargs, **self.params)
     except Exception as error:
       error.traceback = traceback.format_exc()
-      return Result(self, target=target, input=input, error=error)
+      return Result(
+        self, target=target, input=input, error=error, time=timer.elapsed
+      )
     if isinstance(result, tuple):
       valid, output = result
     elif self.test:
@@ -472,7 +478,14 @@ class Check:
         raise ValueError(
           f'Test result cannot be cast to a boolean pandas.Series'
         )
-    return Result(self, target=target, valid=valid, input=input, output=output)
+    return Result(
+      self,
+      target=target,
+      valid=valid,
+      input=input,
+      output=output,
+      time=timer.elapsed
+    )
 
   def serialize(self) -> Dict[str, Any]:
     """
@@ -544,6 +557,8 @@ class Result:
     The original traceback is available from `error.traceback`.
   missing
     Required data found to be missing.
+  time
+    Execution time.
   """
 
   def __init__(
@@ -554,7 +569,8 @@ class Result:
     output: Data = None,
     valid: Union[bool, pd.Series] = None,
     error: Exception = None,
-    missing: List[Target] = None
+    missing: List[Target] = None,
+    time: datetime.timedelta = None
   ) -> None:
     self.check = check
     self.target = target
@@ -563,6 +579,7 @@ class Result:
     self.output = output
     self.error = error
     self.missing = missing
+    self.time = time
 
   def __repr__(self):
     return stringify_call(

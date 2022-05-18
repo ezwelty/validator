@@ -1,4 +1,6 @@
+import datetime
 import inspect
+import timeit
 from typing import Any, Callable, Iterable
 
 
@@ -72,3 +74,14 @@ def sort_partial(values: Iterable, order: Iterable) -> list:
       result[i] = order[position]
       position += 1
   return result
+
+
+class Timer:
+
+  def __init__(self) -> None:
+    self.start = timeit.default_timer()
+
+  @property
+  def elapsed(self) -> datetime.timedelta:
+    seconds = timeit.default_timer() - self.start
+    return datetime.timedelta(seconds=seconds)
