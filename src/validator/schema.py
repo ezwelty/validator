@@ -1,5 +1,5 @@
 import copy as copylib
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
@@ -625,6 +625,19 @@ class Report:
         n[result.code] += 1
       else:
         n[result.code] = 1
+    return n
+
+  @property
+  def counts_by_tag(self) -> Dict[str, Dict[Any, int]]:
+    """Number of results by result code and :attr:`Check.tag`."""
+    n = {}
+    for result in self.results:
+      if not result.code in n:
+        n[result.code] = {}
+      if result.check.tag in n[result.code]:
+        n[result.code][result.check.tag] += 1
+      else:
+        n[result.code][result.check.tag] = 1
     return n
 
   @property
