@@ -717,9 +717,34 @@ class Report:
     >>> rin.results[0].valid
     0    True
     Name: x, dtype: bool
+    >>> rin.results[0].input
+    0    0
+    Name: x, dtype: object
     >>> rout.results[0].valid
     1   False
     Name: x, dtype: bool
+    >>> rout.results[0].input
+    1   <NA>
+    Name: x, dtype: object
+
+    Splitting of results also works with a dictionary of tables.
+
+    >>> schema = Schema({
+    ...   Tables(): Check.only_has_tables(['x'])
+    ... })
+    >>> dfs = {'x': pd.DataFrame(), 'y': pd.DataFrame()}
+    >>> report = schema(dfs)
+    >>> rin, rout = report.project({'x': pd.DataFrame()})
+    >>> rin.results[0].valid
+    x    True
+    dtype: boolean
+    >>> list(rin.results[0].input)
+    ['x']
+    >>> rout.results[0].valid
+    y    False
+    dtype: boolean
+    >>> list(rout.results[0].input)
+    ['y']
     """
     name = name or classify_data(data)()
     ins, outs = [], []
@@ -749,6 +774,25 @@ class Report:
         ins.append(result)
       else:
         base = dict(check=result.check, target=result.target)
-        ins.append(Result(**base, valid=result.valid[mask]))
-        outs.append(Result(**base, valid=result.valid[~mask]))
+        ins.append(Result(
+          **base,
+          valid=result.valid[mask],
+          input=None if result.input is None else (
+            {
+              key: result.input[key]
+              for key, isin in zip(result.input, mask) if isin
+            }
+            if isinstance(result.input, dict) else result.input[mask]
+          )
+        ))
+        outs.append(Result(
+          **base, valid=result.valid[~mask],
+          input=None if result.input is None else (
+            {
+              key: result.input[key]
+              for key, isin in zip(result.input, mask) if not isin
+            }
+            if isinstance(result.input, dict) else result.input[~mask]
+          )
+        ))
     return Report(results=ins, target=name), Report(results=outs, target=name)
