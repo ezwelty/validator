@@ -745,6 +745,27 @@ class Report:
     dtype: boolean
     >>> list(rout.results[0].input)
     ['y']
+
+    Checks of presence will not be included, since failure refers to an absence.
+    It is unclear what the behavior should be in this ambiguous case.
+
+    >>> schema = Schema({
+    ...   Tables(): Check.has_tables(['x', 'y', 'z'])
+    ... })
+    >>> dfs = {'x': pd.DataFrame(), 'y': pd.DataFrame()}
+    >>> report = schema(dfs)
+    >>> rin, rout = report.project({'x': pd.DataFrame()})
+    >>> rin.results[0].valid
+    x    True
+    dtype: boolean
+    >>> list(rin.results[0].input)
+    ['x']
+    >>> rout.results[0].valid
+    y    True
+    z   False
+    dtype: boolean
+    >>> list(rout.results[0].input)
+    ['y']
     """
     name = name or classify_data(data)()
     ins, outs = [], []
@@ -766,33 +787,41 @@ class Report:
         index = input.index
       else:
         assert False, 'Unexpected result format'
-      mask = result.valid.index.isin(index)
-      count = mask.sum()
+      valid_mask = result.valid.index.isin(index)
+      # Input may not match test result (e.g. has_columns with missing columns)
+      if result.input is not None:
+        input_mask = (
+          [x in index for x in result.input]
+          if isinstance(result.input, dict)
+          else result.input.index.isin(index)
+        )
+      count = valid_mask.sum()
       if count == 0:
         outs.append(result)
-      elif count == mask.size:
+      elif count == valid_mask.size:
         ins.append(result)
       else:
         base = dict(check=result.check, target=result.target)
         ins.append(Result(
           **base,
-          valid=result.valid[mask],
+          valid=result.valid[valid_mask],
           input=None if result.input is None else (
             {
               key: result.input[key]
-              for key, isin in zip(result.input, mask) if isin
+              for key, isin in zip(result.input, input_mask) if isin
             }
-            if isinstance(result.input, dict) else result.input[mask]
+            if isinstance(result.input, dict) else result.input[input_mask]
           )
         ))
         outs.append(Result(
-          **base, valid=result.valid[~mask],
+          **base,
+          valid=result.valid[~valid_mask],
           input=None if result.input is None else (
             {
               key: result.input[key]
-              for key, isin in zip(result.input, mask) if not isin
+              for key, isin in zip(result.input, input_mask) if not isin
             }
-            if isinstance(result.input, dict) else result.input[~mask]
+            if isinstance(result.input, dict) else result.input[~input_mask]
           )
         ))
     return Report(results=ins, target=name), Report(results=outs, target=name)
