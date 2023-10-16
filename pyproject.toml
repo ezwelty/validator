@@ -26,6 +26,12 @@ flake8-annotations = "^3.0.1"
 flake8-docstrings = "^1.7.0"
 pydoclint = {version = "^0.3.4", extras = ["flake8"]}
 
+[tool.poetry.group.doc.dependencies]
+Sphinx = {version = "^7.2.6", python = "^3.9"}
+sphinx-autodoc-typehints = "^1.24.0"
+sphinx-rtd-theme = "^1.3.0"
+sphinx-copybutton = "^0.5.2"
+
 [tool.pytest.ini_options]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
 

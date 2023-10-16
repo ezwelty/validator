@@ -20,7 +20,7 @@ class Schema:
     ----------
     schema
         Schema definition as a dictionary, where each key is a :class:`Target`
-        and each value is either a :class:`Check`, :type:`list` of :class:`Check`,
+        and each value is either a :class:`Check`, :class:`list` of :class:`Check`,
         or a dictionary of subschemas. Since each :class:`Target` is unique,
         they can repeated at will (e.g. `{Column(): [], Column(): []}`).
 
