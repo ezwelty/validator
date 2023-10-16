@@ -235,8 +235,14 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
 
     With an internal foreign key.
 
-    >>> foreign_key = {'fields': ['x'], 'reference': {'resource': 'tab', 'fields': ['id']}}
-    >>> resource = {'name': 'tab', 'schema': {'fields': fields, 'foreignKeys': [foreign_key]}}
+    >>> foreign_key = {
+    ...     'fields': ['x'],
+    ...     'reference': {'resource': 'tab', 'fields': ['id']}
+    ... }
+    >>> resource = {
+    ...     'name': 'tab',
+    ...     'schema': {'fields': fields, 'foreignKeys': [foreign_key]}
+    ... }
     >>> resource_to_schema(resource)
     Schema({Table('tab'): [Check.in_columns(columns={'x': 'id'})]})
     """
@@ -303,7 +309,10 @@ def package_to_schema(
 
     With a foreign key.
 
-    >>> foreign_key = {'fields': ['id'], 'reference': {'resource': 'x', 'fields': ['id']}}
+    >>> foreign_key = {
+    ...     'fields': ['id'],
+    ...     'reference': {'resource': 'x', 'fields': ['id']}
+    ... }
     >>> schema_with_key = {'fields': [{'name': 'id'}], 'foreignKeys': [foreign_key]}
     >>> package['resources'][1]['schema'] = schema_with_key
     >>> package_to_schema(package)

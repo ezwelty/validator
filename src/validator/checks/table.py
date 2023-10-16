@@ -166,7 +166,10 @@ def in_foreign_columns(
 
 
 @register_check(
-    message='Columns {list(columns.keys())} do not match {table}.{list(columns.values())} when joined on {join}',
+    message=(
+        'Columns {list(columns.keys())} do not match '
+        + '{table}.{list(columns.values())} when joined on {join}'
+    ),
     required=lambda table, join, columns: (
         [Column(column) for column in [*join, *columns]]
         + [

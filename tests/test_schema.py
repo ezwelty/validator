@@ -206,7 +206,10 @@ skips = pd.DataFrame(
             'table': 'secondary',
             'column': 'integer_pk',
             'check': Check.in_foreign_column(table='main', column='integer_pk_missing'),
-            'message': "Missing required inputs [Column('integer_pk_missing', table='main')]",
+            'message': (
+                'Missing required inputs '
+                + "[Column('integer_pk_missing', table='main')]"
+            ),
         },
     ]
 )

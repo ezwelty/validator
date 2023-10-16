@@ -494,7 +494,7 @@ class Check:
                     raise TypeError()
             except TypeError:
                 raise ValueError(
-                    f'Test result cannot be cast to a boolean pandas.Series'
+                    'Test result cannot be cast to a boolean pandas.Series'
                 )
         return Result(
             self,

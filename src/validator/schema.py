@@ -101,7 +101,10 @@ class Schema:
                             cls = list(check.inputs.values())[0]
                             if cls is not type(key):
                                 errors.append(
-                                    f'{prefix}[{i}]: Check has wrong target class ({cls})'
+                                    (
+                                        f'{prefix}[{i}]: '
+                                        + f'Check has wrong target class ({cls})'
+                                    )
                                 )
                             else:
                                 flat[flat_key.copy()] = check
@@ -400,7 +403,7 @@ class Schema:
                 # Pre-check existence of target in data to avoid Check.__call__() error
                 args = inputs.copy()
                 if isinstance(target, Tables) and isinstance(key, (Table, Column)):
-                    if not key.table in args[Tables]:
+                    if key.table not in args[Tables]:
                         # Table {key.table} not in tables
                         results[key] = Result(
                             check, target=key, missing=[Table(key.table)]
@@ -408,7 +411,7 @@ class Schema:
                         continue
                     args[Table] = args[Tables][key.table]
                 if isinstance(target, (Tables, Table)) and isinstance(key, Column):
-                    if not key.column in args[Table]:
+                    if key.column not in args[Table]:
                         # Column {key.column} not in table {key.table}
                         results[key] = Result(
                             check,
@@ -436,7 +439,11 @@ class Schema:
                             inputs[Table][key.column] = output
                 except Exception as e:
                     raise ValueError(
-                        f'Failed to set output of {check}.\n- error: {e}\n-output: {output}'
+                        (
+                            f'Failed to set output of {check}.\n'
+                            + f'- error: {e}\n'
+                            + f'- output: {output}'
+                        )
                     )
                 results[key] = result
         output = inputs[type(target)]
@@ -643,7 +650,7 @@ class Report:
         """Number of results by result code and :attr:`Check.tag`."""
         n = {}
         for result in self.results:
-            if not result.code in n:
+            if result.code not in n:
                 n[result.code] = {}
             if result.check.tag in n[result.code]:
                 n[result.code][result.check.tag] += 1

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC
-from multiprocessing.sharedctypes import Value
 from typing import TYPE_CHECKING, Any, Dict, Hashable, List, Optional, Set, Type
 
 import pandas as pd
@@ -190,7 +189,7 @@ def extract_data(
     if isinstance(name, Tables):
         none_as_name |= any(None in value for value in data.values())
     if none_as_name:
-        raise ValueError(f'Tables and columns cannot be named `None`')
+        raise ValueError('Tables and columns cannot be named `None`')
     # Check that table column names are unique
     if isinstance(name, Table):
         seen = set()
