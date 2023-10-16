@@ -18,6 +18,7 @@ validator.targets
 
 .. automodule:: validator.targets
    :members:
+   :inherited-members:
 
 validator.checks.column
 -----------------------
