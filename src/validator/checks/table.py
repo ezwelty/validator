@@ -3,8 +3,9 @@ from typing import Dict, Hashable, Sequence, Tuple
 import pandas as pd
 
 from ..check import register_check
-from ..targets import Column
 from ..helpers import sort_partial
+from ..targets import Column
+
 
 @register_check(name='table_not_empty', message='Has no rows')
 def not_empty(df: pd.DataFrame) -> bool:

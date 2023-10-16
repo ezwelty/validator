@@ -1,11 +1,10 @@
-from typing import (
-  Any, Dict, Hashable, Union, List, Literal, Optional, Protocol, Tuple
-)
+from typing import (Any, Dict, Hashable, List, Literal, Optional, Protocol,
+                    Tuple, Union)
 
 import pandas as pd
 
-from .targets import Target
 from .check import Check
+from .targets import Target
 
 __all__ = [
   'Axis',

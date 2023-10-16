@@ -1,8 +1,8 @@
 from typing import Any, List, Optional, Union
 
 from ..check import Check
-from ..targets import Column, Table, Tables
 from ..schema import Schema
+from ..targets import Column, Table, Tables
 
 # ---- Helpers ----
 

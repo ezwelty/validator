@@ -5,6 +5,7 @@ import pandas as pd
 from ..check import register_check
 from ..helpers import sort_partial
 
+
 @register_check(name='tables_not_empty', message='Has no tables')
 def not_empty(dfs: Dict[Hashable, pd.DataFrame]) -> bool:
   return len(dfs) > 0

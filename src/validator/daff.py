@@ -4,7 +4,6 @@ import daff
 import numpy as np
 import pandas as pd
 
-
 DAFF_TEMPLATE_PREFIX = """
 <!DOCTYPE html>
 <html>

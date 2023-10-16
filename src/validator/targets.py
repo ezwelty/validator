@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 from abc import ABC
 from multiprocessing.sharedctypes import Value
-from typing import Any, Dict, Hashable, List, Optional, Set, Type, TYPE_CHECKING
+from typing import (TYPE_CHECKING, Any, Dict, Hashable, List, Optional, Set,
+                    Type)
 
 import pandas as pd
 
 from .helpers import stringify_call
+
 if TYPE_CHECKING:
   from .types import Axis, Data
 

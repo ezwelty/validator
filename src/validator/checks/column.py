@@ -5,7 +5,6 @@ import pandas as pd
 from ..check import register_check
 from ..targets import Column
 
-
 # ---- Checks ----
 
 @register_check(message='Required value is missing')

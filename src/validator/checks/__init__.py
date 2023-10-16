@@ -1,5 +1,3 @@
-from . import column
-from . import table
-from . import tables
+from . import column, table, tables
 
 __all__ = ['column', 'table', 'tables']

@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 
 from .check import Check, Result
-from .helpers import stringify_call, filter_kwargs
-from .targets import Target, Column, Table, Tables, classify_data, extract_data
+from .helpers import filter_kwargs, stringify_call
+from .targets import Column, Table, Tables, Target, classify_data, extract_data
 from .types import Data, FlatSchemaDict, SchemaDict
 
 # ---- Schema ----

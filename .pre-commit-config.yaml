@@ -19,3 +19,8 @@ repos:
       language: system
       types: [python]
       pass_filenames: false
+    - id: format-isort
+      name: isort
+      entry: poetry run isort
+      language: system
+      types: [python]
