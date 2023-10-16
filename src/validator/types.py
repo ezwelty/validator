@@ -1,3 +1,4 @@
+"""Type aliases."""
 from typing import Any, Dict, Hashable, List, Literal, Optional, Protocol, Tuple, Union
 
 import pandas as pd
@@ -29,9 +30,12 @@ Valid = Union[Optional[bool], Dict[Hashable, Optional[bool]], pd.Series]
 
 
 class CheckFunction(Protocol):
+    """Check function."""
+
     def __call__(
         self, __data: Data, *parents: ParentData, **kwargs: Any
     ) -> Union[Valid, Data, Tuple[Valid, Data]]:
+        """Check function call."""
         ...
 
 

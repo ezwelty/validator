@@ -1,3 +1,4 @@
+"""Schema conversion from Frictionless specs (https://specs.frictionlessdata.io)."""
 from typing import Any, List, Optional, Union
 
 from ..check import Check

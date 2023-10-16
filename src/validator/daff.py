@@ -1,3 +1,4 @@
+"""Diff tables using daff."""
 from typing import List
 
 import daff
@@ -88,6 +89,7 @@ DAFF_TEMPLATE_SUFFIX = """
 def dataframe_to_string_list(
     df: pd.DataFrame, na: str = '', index: bool = True
 ) -> List[List[str]]:
+    """Convert a dataframe to a matrix of strings."""
     header = df.columns.astype('string').fillna(na).to_numpy()
     data = df.astype('string').fillna(na).to_numpy()
     if index:
@@ -101,6 +103,7 @@ def dataframe_to_string_list(
 def table_diff(
     a: pd.DataFrame, b: pd.DataFrame, path: str, flags: daff.CompareFlags = None
 ) -> None:
+    """Diff two tables and save the result to an HTML file."""
     diff = daff.diff(
         dataframe_to_string_list(a),
         dataframe_to_string_list(b),

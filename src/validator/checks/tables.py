@@ -1,3 +1,4 @@
+"""Tables-level check functions."""
 from typing import Dict, Hashable, Sequence, Tuple
 
 import pandas as pd
@@ -8,6 +9,7 @@ from ..helpers import sort_partial
 
 @register_check(name='tables_not_empty', message='Has no tables')
 def not_empty(dfs: Dict[Hashable, pd.DataFrame]) -> bool:
+    """Whether one or more tables are present."""
     return len(dfs) > 0
 
 
@@ -15,6 +17,7 @@ def not_empty(dfs: Dict[Hashable, pd.DataFrame]) -> bool:
 def has_tables(
     dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], fill: bool = False
 ) -> Dict[Hashable, bool]:
+    """Whether certain tables are present."""
     for table in tables:
         if table not in dfs:
             if fill:
@@ -27,6 +30,7 @@ def has_tables(
 def only_has_tables(
     dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], drop: bool = False
 ) -> Dict[Hashable, bool]:
+    """Whether only certain tables are present."""
     if drop:
         dropped = [table for table in dfs if table not in tables]
         for table in dropped:
@@ -39,6 +43,7 @@ def only_has_tables(
 def has_sorted_tables(
     dfs: Dict[Hashable, pd.DataFrame], *, tables: Sequence[Hashable], sort: bool = False
 ) -> Dict[Hashable, bool]:
+    """Whether tables are sorted according to a certain order."""
     ordered = sort_partial(list(dfs), order=tables)
     if sort:
         temp = {table: dfs[table] for table in ordered}

@@ -1,3 +1,4 @@
+"""Checks and their results."""
 from __future__ import annotations
 
 import datetime
@@ -653,7 +654,7 @@ class Result:
 
     @property
     def table(self) -> Optional[Union[Hashable, List[Hashable]]]:
-        """Name of invalid table(s)."""
+        """Names of the invalid tables."""
         return (
             (self.axis == 'table' and list(self.valid[~self.valid].index))
             or (isinstance(self.target, (Table, Column)) and self.target.table)
@@ -662,7 +663,7 @@ class Result:
 
     @property
     def column(self) -> Optional[Union[Hashable, List[Hashable]]]:
-        """Name of invalid column(s)."""
+        """Names of the invalid columns."""
         return (
             (self.axis == 'column' and list(self.valid[~self.valid].index))
             or (isinstance(self.target, Column) and self.target.column)

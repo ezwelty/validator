@@ -1,3 +1,4 @@
+"""Targets of checks."""
 from __future__ import annotations
 
 from abc import ABC
@@ -12,12 +13,16 @@ if TYPE_CHECKING:
 
 
 class Target(ABC):
+    """Check target."""
+
     AXES: List[Axis] = []
     CHILDREN: Set[Type['Target']] = {}
 
     @classmethod
     def create(cls, **kwargs: Any) -> 'Target':
         """
+        Create a target.
+
         Examples
         --------
         >>> Target.create()
@@ -35,10 +40,12 @@ class Target(ABC):
 
     @property
     def parent(self) -> None:
+        """Parent."""
         return None
 
     @property
     def ancestor(self) -> Optional['Target']:
+        """Most distant ancestor."""
         node = self
         while node.parent is not None:
             node = node.parent
@@ -48,12 +55,15 @@ class Target(ABC):
 
     @property
     def named(self) -> bool:
+        """Whether target is named."""
         return any(value is not None for value in self.__dict__.values())
 
     def equals(self, other: Any) -> bool:
+        """Whether target equals another."""
         return self.__class__ is other.__class__ and self.__dict__ == other.__dict__
 
     def matches(self, other: Any) -> bool:
+        """Whether target matches another."""
         return (
             type(self) is type(other)
             and list(other.__dict__) == list(self.__dict__)
@@ -61,19 +71,24 @@ class Target(ABC):
         )
 
     def __contains__(self, other: Any) -> bool:
+        """Whether target contains another."""
         return False
 
     def __repr__(self) -> str:
+        """Represent as string."""
         filtered = [(k, v) for k, v in self.__dict__.items() if v is not None]
         args = [v for _, v in filtered[:1]]
         kwargs = dict(filtered[1:])
         return stringify_call(self.__class__.__name__, *args, **kwargs)
 
     def copy(self) -> 'Target':
+        """Create a copy."""
         return type(self)(**self.__dict__)
 
 
 class Column(Target):
+    """Column target."""
+
     AXES: List[Axis] = ['row']
     CHILDREN: Set[Type[Target]] = {}
 
@@ -85,12 +100,15 @@ class Column(Target):
 
     @property
     def parent(self) -> Optional['Table']:
+        """Parent table."""
         if self.column is not None:
             return Table(self.table)
         return None
 
 
 class Table(Target):
+    """Table target."""
+
     AXES: List[Axis] = ['row', 'column']
     CHILDREN: Set[Type[Target]] = {Column}
 
@@ -99,21 +117,26 @@ class Table(Target):
 
     @property
     def parent(self) -> Optional['Tables']:
+        """Parent tables."""
         if self.table is not None:
             return Tables()
         return None
 
     def __contains__(self, other: Any) -> bool:
+        """Whether table contains another target (column)."""
         return isinstance(other, Column) and (
             other.table is None or other.table == self.table
         )
 
 
 class Tables(Target):
+    """Tables target."""
+
     AXES: List[Axis] = ['table']
     CHILDREN: Set[Type[Target]] = {Column, Table}
 
     def __contains__(self, other: Any) -> bool:
+        """Whether tables contains another target (table or column)."""
         return isinstance(other, (Column, Table))
 
 

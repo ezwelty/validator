@@ -1,3 +1,4 @@
+"""Table-level check functions."""
 from typing import Dict, Hashable, Sequence, Tuple
 
 import pandas as pd
@@ -9,6 +10,7 @@ from ..targets import Column
 
 @register_check(name='table_not_empty', message='Has no rows')
 def not_empty(df: pd.DataFrame) -> bool:
+    """Whether a table contains rows."""
     return not df.empty
 
 
@@ -16,6 +18,7 @@ def not_empty(df: pd.DataFrame) -> bool:
 def has_columns(
     df: pd.DataFrame, *, columns: Sequence[Hashable], fill: bool = False
 ) -> Dict[Hashable, bool]:
+    """Whether a table contains certain columns."""
     for column in columns:
         if column not in df and fill:
             # NOTE: Modifies dataframe in place
@@ -27,6 +30,7 @@ def has_columns(
 def only_has_columns(
     df: pd.DataFrame, *, columns: Sequence[Hashable], drop: bool = False
 ) -> Dict[Hashable, bool]:
+    """Whether a table only contains certain columns."""
     if drop:
         extras = [column for column in df if column not in columns]
         # NOTE: Modifies dataframe in place

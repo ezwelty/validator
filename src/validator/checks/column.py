@@ -1,3 +1,4 @@
+"""Column-level check functions."""
 from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple, Union
 
 import pandas as pd
@@ -199,6 +200,7 @@ def _coerce(s: pd.Series, map: Callable, dtype: str = None) -> pd.Series:
 
 
 def parse_string(s: pd.Series) -> pd.Series:
+    """Parse values as strings."""
     # pd.api.types.is_string_dtype returns True for object
     if isinstance(s.dtype, pd.StringDtype):
         return s
@@ -206,12 +208,14 @@ def parse_string(s: pd.Series) -> pd.Series:
 
 
 def parse_number(s: pd.Series) -> pd.Series:
+    """Parse values as numbers."""
     if pd.api.types.is_float_dtype(s):
         return s
     return _coerce(s, map=float, dtype='Float64')
 
 
 def parse_integer(s: pd.Series) -> pd.Series:
+    """Parse values as integers."""
     if pd.api.types.is_integer_dtype(s):
         return s
     return _coerce(s, map=int, dtype='Int64')
@@ -222,6 +226,7 @@ def parse_boolean(
     true_values: List[str] = ['true', 'True', 'TRUE', '1'],
     false_values: List[str] = ['false', 'False', 'FALSE', '0'],
 ) -> pd.Series:
+    """Parse values as booleans."""
     if pd.api.types.is_bool_dtype(s):
         return s
     if not isinstance(s.dtype, pd.StringDtype):
@@ -233,6 +238,7 @@ def parse_boolean(
 
 
 def parse_date(s: pd.Series, format: str = 'default') -> pd.Series:
+    """Parse values as dates."""
     if pd.api.types.is_datetime64_dtype(s):
         return s.dt.normalize()
     patterns = {'default': '%Y-%m-%d', 'any': None}
@@ -243,6 +249,7 @@ def parse_date(s: pd.Series, format: str = 'default') -> pd.Series:
 
 
 def parse_datetime(s: pd.Series, format: str = 'default') -> pd.Series:
+    """Parse values as datetimes."""
     if pd.api.types.is_datetime64_dtype(s):
         return s
     patterns = {'default': '%Y-%m-%dT%H:%M:%S%z', 'any': None}
@@ -253,6 +260,7 @@ def parse_datetime(s: pd.Series, format: str = 'default') -> pd.Series:
 
 
 def parse_year(s: pd.Series) -> pd.Series:
+    """Parse values as years."""
     return parse_integer(s)
 
 
@@ -261,19 +269,23 @@ def parse_year(s: pd.Series) -> pd.Series:
 
 @register_check
 def string_to_lowercase(s: pd.Series) -> pd.Series:
+    """Convert strings to lowercase."""
     return s.str.lower()
 
 
 @register_check
 def string_to_uppercase(s: pd.Series) -> pd.Series:
+    """Convert strings to uppercase."""
     return s.str.upper()
 
 
 @register_check
 def number_to_integer(s: pd.Series) -> pd.Series:
+    """Round numbers and cast them to integer."""
     return s.round().astype('Int64')
 
 
 @register_check
 def integer_to_number(s: pd.Series) -> pd.Series:
+    """Cast integers to number."""
     return s.astype('Float64')

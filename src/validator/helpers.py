@@ -1,3 +1,4 @@
+"""Helper functions."""
 import datetime
 import inspect
 import timeit
@@ -80,10 +81,13 @@ def sort_partial(values: Iterable, order: Iterable) -> list:
 
 
 class Timer:
+    """Measure elapsed time."""
+
     def __init__(self) -> None:
         self.start = timeit.default_timer()
 
     @property
     def elapsed(self) -> datetime.timedelta:
+        """Time elsapsed (s)."""
         seconds = timeit.default_timer() - self.start
         return datetime.timedelta(seconds=seconds)

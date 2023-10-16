@@ -1,3 +1,4 @@
+"""Tests of schema construction and validation."""
 import pandas as pd
 
 from validator import Check, Column, Schema, Table, Tables
@@ -217,7 +218,8 @@ skips = pd.DataFrame(
 # ---- Tests ----
 
 
-def test_checks_child_column_without_required_parents() -> None:
+def test_checks_a_column() -> None:
+    """It checks a column."""
     table = 'main'
     column = 'integer_pk'
     report = schema(dfs, target=Column(column, table))
@@ -234,7 +236,8 @@ def test_checks_child_column_without_required_parents() -> None:
     assert all(r.counts == report.counts for r in reports)
 
 
-def test_checks_child_column_with_required_parents() -> None:
+def test_checks_a_column_with_missing_requirements() -> None:
+    """It checks a column in the absence of some check requirements."""
     table = 'secondary'
     column = 'integer_pk'
     report = schema(dfs, target=Column(column, table))
@@ -251,7 +254,8 @@ def test_checks_child_column_with_required_parents() -> None:
     assert all(r.counts == {'pass': 2, 'skip': 3} for r in reports)
 
 
-def test_checks_child_table_without_required_parents() -> None:
+def test_checks_a_table() -> None:
+    """It checks a table."""
     table = 'main'
     report = schema(dfs, target=Table(table))
     assert report.target.equals(Table(table))
@@ -264,7 +268,8 @@ def test_checks_child_table_without_required_parents() -> None:
     assert all(r.counts == report.counts for r in reports)
 
 
-def test_checks_child_table_with_required_parents() -> None:
+def test_checks_a_table_with_missing_requirements() -> None:
+    """It checks a table in the absence of some check requirements."""
     table = 'secondary'
     report = schema(dfs, target=Table(table))
     assert report.target.equals(Table(table))
@@ -279,6 +284,7 @@ def test_checks_child_table_with_required_parents() -> None:
 
 
 def test_checks_tables() -> None:
+    """It checks tables."""
     report = schema(dfs)
     assert report.target.equals(Tables())
     assert report.valid is False

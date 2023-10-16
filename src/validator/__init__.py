@@ -1,3 +1,4 @@
+"""Build validation and transformation pipelines for tabular data."""
 # Needed to register checks
 from . import checks, convert
 from .check import Check, register_check

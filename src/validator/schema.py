@@ -1,3 +1,4 @@
+"""Test and transform tabular data."""
 import copy as copylib
 from typing import Any, Dict, List, Tuple
 
