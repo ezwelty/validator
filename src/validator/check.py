@@ -48,15 +48,15 @@ def _test_inputs(fn: Callable, inputs: Dict[str, Type[Target]] = None) -> Dict[s
   missing = [name for name in names if name not in mapped]
   if missing:
     raise ValueError(
-      f"Cannot infer input for function arguments {missing}."
-      f" Use a standard name ({list(INPUTS)}) or specify with `inputs=`."
+      f'Cannot infer input for function arguments {missing}.'
+      f' Use a standard name ({list(INPUTS)}) or specify with `inputs=`.'
     )
   # All types must be valid inputs and unnamed
   invalid = [
     value for value in mapped.values() if not issubclass(value, Target)
   ]
   if invalid:
-    raise ValueError(f"Invalid inputs {invalid}")
+    raise ValueError(f'Invalid inputs {invalid}')
   # All secondary types must be parents of first argument's type
   child = mapped[names[0]]
   not_parents = [
@@ -108,12 +108,12 @@ def _test_params(fn: Callable, params: Dict[str, Any] = None) -> Dict[str, Any]:
     name for name, required in kwargs.items() if required and name not in params
   ]
   if missing:
-    raise ValueError(f"Missing required keyword arguments {missing}")
+    raise ValueError(f'Missing required keyword arguments {missing}')
   # No extra arguments can be present
   if not any(param.kind == param.VAR_KEYWORD for param in sig_params):
     extra = [name for name in params if name not in kwargs]
     if extra:
-      raise ValueError(f"Unexpected keyword arguments {extra}")
+      raise ValueError(f'Unexpected keyword arguments {extra}')
   return params
 
 def _generate_method(

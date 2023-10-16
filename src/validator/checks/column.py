@@ -159,9 +159,9 @@ def parse_as_type(s: pd.Series, *, type='string', **kwargs: Any) -> Tuple[Union[
     2     <NA>
     dtype: boolean
   """
-  parser = globals().get(f"parse_{type}")
+  parser = globals().get(f'parse_{type}')
   if not parser:
-    raise NotImplementedError(f"Type {type} not supported")
+    raise NotImplementedError(f'Type {type} not supported')
   # argnames = parser.__code__.co_varnames[1 : parser.__code__.co_argcount]
   # kwargs = {key: getattr(self, key) for key in argnames if hasattr(self, key)}
   parsed = parser(s, **kwargs)
@@ -200,8 +200,8 @@ def parse_integer(s: pd.Series) -> pd.Series:
 
 def parse_boolean(
   s: pd.Series,
-  true_values: List[str] = ["true", "True", "TRUE", "1"],
-  false_values: List[str] = ["false", "False", "FALSE", "0"],
+  true_values: List[str] = ['true', 'True', 'TRUE', '1'],
+  false_values: List[str] = ['false', 'False', 'FALSE', '0'],
 ) -> pd.Series:
   if pd.api.types.is_bool_dtype(s):
     return s
@@ -212,10 +212,10 @@ def parse_boolean(
   new[s.isin(false_values)] = False
   return new
 
-def parse_date(s: pd.Series, format: str = "default") -> pd.Series:
+def parse_date(s: pd.Series, format: str = 'default') -> pd.Series:
   if pd.api.types.is_datetime64_dtype(s):
     return s.dt.normalize()
-  patterns = {"default": "%Y-%m-%d", "any": None}
+  patterns = {'default': '%Y-%m-%d', 'any': None}
   pattern = patterns.get(format, format)
   return pd.to_datetime(
     s, errors='coerce', format=pattern, infer_datetime_format=pattern is None
@@ -224,7 +224,7 @@ def parse_date(s: pd.Series, format: str = "default") -> pd.Series:
 def parse_datetime(s: pd.Series, format: str = 'default') -> pd.Series:
   if pd.api.types.is_datetime64_dtype(s):
     return s
-  patterns = {"default": "%Y-%m-%dT%H:%M:%S%z", "any": None}
+  patterns = {'default': '%Y-%m-%dT%H:%M:%S%z', 'any': None}
   pattern = patterns.get(format, format)
   return pd.to_datetime(
     s, errors='coerce', format=pattern, infer_datetime_format=pattern is None
