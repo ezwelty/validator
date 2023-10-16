@@ -1,7 +1,7 @@
 validator
 =========
 
-[![tests](https://github.com/ezwelty/validator/actions/workflows/test.yaml/badge.svg)](https://github.com/ezwelty/validator/actions/workflows/test.yaml)
+[![tests](https://github.com/ezwelty/validator/actions/workflows/tests.yaml/badge.svg)](https://github.com/ezwelty/validator/actions/workflows/tests.yaml)
 
 `validator` makes it easy to validate and transform tabular data in an expressive and reusable way. For example, you can:
 
