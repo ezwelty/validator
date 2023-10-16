@@ -5,7 +5,12 @@ from .schema import Schema
 from .targets import Column, Table, Tables
 
 __all__ = [
-  'Check', 'Schema',
-  'Column', 'Table', 'Tables',
-  'checks', 'convert', 'register_check'
+    'Check',
+    'Schema',
+    'Column',
+    'Table',
+    'Tables',
+    'checks',
+    'convert',
+    'register_check',
 ]

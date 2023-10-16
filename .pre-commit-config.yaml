@@ -24,3 +24,8 @@ repos:
       entry: poetry run isort
       language: system
       types: [python]
+    - id: format-black
+      name: black
+      entry: poetry run black --skip-string-normalization
+      language: system
+      types: [python]

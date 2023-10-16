@@ -84,29 +84,28 @@ DAFF_TEMPLATE_SUFFIX = """
 </html>
 """
 
+
 def dataframe_to_string_list(
-  df: pd.DataFrame, na: str = '', index: bool = True
+    df: pd.DataFrame, na: str = '', index: bool = True
 ) -> List[List[str]]:
-  header = df.columns.astype('string').fillna(na).to_numpy()
-  data = df.astype('string').fillna(na).to_numpy()
-  if index:
-    index_name = str(df.index.name or na)
-    index_values = df.index.astype('string').fillna(na).to_numpy()
-    header = np.concatenate(([index_name], header))
-    data = np.column_stack((index_values, data))
-  return np.row_stack((header, data)).tolist()
+    header = df.columns.astype('string').fillna(na).to_numpy()
+    data = df.astype('string').fillna(na).to_numpy()
+    if index:
+        index_name = str(df.index.name or na)
+        index_values = df.index.astype('string').fillna(na).to_numpy()
+        header = np.concatenate(([index_name], header))
+        data = np.column_stack((index_values, data))
+    return np.row_stack((header, data)).tolist()
+
 
 def table_diff(
-  a: pd.DataFrame,
-  b: pd.DataFrame,
-  path: str,
-  flags: daff.CompareFlags = None
+    a: pd.DataFrame, b: pd.DataFrame, path: str, flags: daff.CompareFlags = None
 ) -> None:
-  diff = daff.diff(
-    dataframe_to_string_list(a),
-    dataframe_to_string_list(b),
-    flags=flags or daff.CompareFlags()
-  )
-  render = daff.DiffRender().render(diff)
-  with open(path, 'w') as file:
-    file.write(DAFF_TEMPLATE_PREFIX + render.html() + DAFF_TEMPLATE_SUFFIX)
+    diff = daff.diff(
+        dataframe_to_string_list(a),
+        dataframe_to_string_list(b),
+        flags=flags or daff.CompareFlags(),
+    )
+    render = daff.DiffRender().render(diff)
+    with open(path, 'w') as file:
+        file.write(DAFF_TEMPLATE_PREFIX + render.html() + DAFF_TEMPLATE_SUFFIX)
