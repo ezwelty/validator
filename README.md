@@ -1,6 +1,7 @@
 validator
 =========
 
+[![codecov](https://codecov.io/gh/ezwelty/validator/branch/main/graph/badge.svg?token=WUANO0HEFG)](https://codecov.io/gh/ezwelty/validator)
 [![tests](https://github.com/ezwelty/validator/actions/workflows/tests.yaml/badge.svg)](https://github.com/ezwelty/validator/actions/workflows/tests.yaml)
 
 `validator` makes it easy to validate and transform tabular data in an expressive and reusable way. For example, you can:
