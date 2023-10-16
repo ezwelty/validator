@@ -182,49 +182,49 @@ class Check:
     Parameters
     ----------
     fn
-      A function that tests and/or transforms tabular data.
+        A function that tests and/or transforms tabular data.
 
-      The first parameter is the data to process - either a column
-      (`Series`), table (`DataFrame`), or tables (`Dict[Any, DataFrame]`).
-      Additional parameters may be used to pass parent data (table and/or tables).
-      These parameters must either follow the naming convention `s` / `column`,
-      `df` / `table`, and `dfs` / `tables`, or be defined in `inputs`.
+        The first parameter is the data to process - either a column
+        (`Series`), table (`DataFrame`), or tables (`Dict[Any, DataFrame]`).
+        Additional parameters may be used to pass parent data (table and/or tables).
+        These parameters must either follow the naming convention `s` / `column`,
+        `df` / `table`, and `dfs` / `tables`, or be defined in `inputs`.
 
-      Keyword-only parameters (after the `*`) may be used to configure the check.
+        Keyword-only parameters (after the `*`) may be used to configure the check.
 
-      Returned test results may either be a single `Optional[bool]` (`True`: pass,
-      `False`: fail, `None`: skip) or per child (see `axis`) as `Union[Series,
-      Dict[Any, bool]]`. To transform the data, either modify it in place (use
-      caution), return the test result and transformation together as a `tuple`,
-      or return the transformed data alone with `test=False`.
+        Returned test results may either be a single `Optional[bool]` (`True`: pass,
+        `False`: fail, `None`: skip) or per child (see `axis`) as `Union[Series,
+        Dict[Any, bool]]`. To transform the data, either modify it in place (use
+        caution), return the test result and transformation together as a `tuple`,
+        or return the transformed data alone with `test=False`.
     inputs
-      Mapping of positional parameter names in `fn` to target class `Column`,
-      `Table` or `Tables`. Only needed if the names do not follow the naming
-      convention (see `fn`).
+        Mapping of positional parameter names in `fn` to target class `Column`,
+        `Table` or `Tables`. Only needed if the names do not follow the naming
+        convention (see `fn`).
     required
-      Named children of input parent data actually required by `fn`. These can be
-      other columns of `Table` (e.g. `[Column('other')]`) or other tables or
-      columns of `Tables` (e.g. `[Table('main'), Column('other',
-      table='main')]`). This allows the check to be skipped if a parent
-      is present but a required child is missing.
-      If `Callable`, can accept any of the keyword arguments of `fn` (`params`)
-      and must return `List[Target]`.
+        Named children of input parent data actually required by `fn`. These can be
+        other columns of `Table` (e.g. `[Column('other')]`) or other tables or
+        columns of `Tables` (e.g. `[Table('main'), Column('other',
+        table='main')]`). This allows the check to be skipped if a parent
+        is present but a required child is missing.
+        If `Callable`, can accept any of the keyword arguments of `fn` (`params`)
+        and must return `List[Target]`.
     test
-      Whether the returned value (if not a tuple) is a test result
-      or transformed data (see `fn`).
+        Whether the returned value (if not a tuple) is a test result
+        or transformed data (see `fn`).
     axis
-      Whether a vector test result returned by `fn` is by
-      - 'row': default for `Table` and `Column`
-      - 'column': alternative for `Table`
-      - 'table': default for `Tables`
+        Whether a vector test result returned by `fn` is by
+        - 'row': default for `Table` and `Column`
+        - 'column': alternative for `Table`
+        - 'table': default for `Tables`
     params
-      Values for the keyword-only parameters of `fn`.
+        Values for the keyword-only parameters of `fn`.
     name
-      Name (defaults to the name of `fn`).
+        Name (defaults to the name of `fn`).
     message
-      Message reported on test failure.
+        Message reported on test failure.
     tag
-      Arbitrary tag.
+        Arbitrary tag.
 
     Examples
     --------
@@ -308,8 +308,8 @@ class Check:
         test: bool = True,
         axis: Axis = None,
         params: Dict[str, Any] = None,
-        message: str = None,
         name: str = None,
+        message: str = None,
         tag: Any = None,
     ) -> None:
         self.fn = fn
@@ -397,17 +397,17 @@ class Check:
         Parameters
         ----------
         data
-          Tabular data.
+            Tabular data.
         name
-          Class and name of `data` (e.g. `Column('x')`).
-          If not provided, attempts to guess the class based on the type of `data`
-          (e.g. `Table()` for :class:`pandas.DataFrame`).
+            Class and name of `data` (e.g. `Column('x')`).
+            If not provided, attempts to guess the class based on the type of `data`
+            (e.g. `Table()` for :class:`pandas.DataFrame`).
         target
-          Name of the tabular element to check. Defaults to `name`.
-          If provided, must be a child of `name` (e.g. `Column('x')` in `Table()`).
+            Name of the tabular element to check. Defaults to `name`.
+            If provided, must be a child of `name` (e.g. `Column('x')` in `Table()`).
 
         Examples
-        -------
+        --------
         >>> df = pd.DataFrame({'id': [0, 1], 'x': [0, 2]})
         >>> check = Check(lambda s: s.isin({0, 1}))
         >>> check(df['x']).valid
@@ -449,15 +449,15 @@ class Check:
         Raises
         ------
         ValueErorr
-          Cannot classify data as Column, Table, or Tables
+            Cannot classify data as Column, Table, or Tables
         ValueError
-          Target is not a child of data
+            Target is not a child of data
         ValueError
-          Failed to load data for target from data
+            Failed to load data for target from data
         ValueError
-          Target class does not match check target
+            Target class does not match check target
         ValueError
-          Test result could not be cast to a boolean pandas.Series
+            Test result could not be cast to a boolean pandas.Series
         """
         timer = Timer()
         inputs = extract_data(data, name=name, target=target)
@@ -541,11 +541,16 @@ class Check:
         Parameters
         ----------
         name
-          Check name. Must be the name of a Check class method.
+            Check name. Must be the name of a Check class method.
         params
-          Check parameters (values for the keyword-only parameters of :attr:`fn`).
+            Check parameters (values for the keyword-only parameters of :attr:`fn`).
         **kwargs
-          Additional arguments passed to `Check.{name}`.
+            Additional arguments passed to `Check.{name}`.
+
+        Raises
+        ------
+        ValueError
+            Check is not registered.
         """
         params = params or {}
         if not hasattr(cls, name):
@@ -560,22 +565,22 @@ class Result:
     Parameters
     ----------
     check
-      Check that was called.
+        Check that was called.
     target
-      Target of the check.
+        Target of the check.
     input
-      Input data for `target`.
+        Input data for `target`.
     output
-      Output (potentially transformed) data for `target`.
+        Output (potentially transformed) data for `target`.
     valid
-      Validation result.
+        Validation result.
     error
-      Error raised by `check.fn`.
-      The original traceback is available from `error.traceback`.
+        Error raised by `check.fn`.
+        The original traceback is available from `error.traceback`.
     missing
-      Required data found to be missing.
+        Required data found to be missing.
     time
-      Execution time.
+        Execution time.
     """
 
     def __init__(
@@ -715,28 +720,28 @@ def register_check(
     Parameters
     ----------
     fn
-      Check function (see :attr:`Check.fn`).
+        Check function (see :attr:`Check.fn`).
     name
-      Name of the created :class:`Check` method. Defaults to the name of `fn`.
-      `Check.{name}` cannot already exist as a built-in class attribute.
+        Name of the created :class:`Check` method. Defaults to the name of `fn`.
+        `Check.{name}` cannot already exist as a built-in class attribute.
     inputs
-      Mapping of positional parameter names to `Column`, `Table`, or `Tables`
-      (see :attr:`Check.inputs`).
+        Mapping of positional parameter names to `Column`, `Table`, or `Tables`
+        (see :attr:`Check.inputs`).
     required
-      Named children of input parents actually used by `fn`
-      (see :attr:`Check.required`).
-      If `Callable`, can accept any of the keyword arguments of `fn`
-      and must return `List[Target]`.
+        Named children of input parents actually used by `fn`
+        (see :attr:`Check.required`).
+        If `Callable`, can accept any of the keyword arguments of `fn`
+        and must return `List[Target]`.
     test
-      Whether the return value of `fn`, if not a tuple, is a test result
-      or transformed data (see :attr:`Check.test`).
+        Whether the return value of `fn`, if not a tuple, is a test result
+        or transformed data (see :attr:`Check.test`).
     axis
-      Whether a vector test result returned by `fn` is by
-      'row', 'column', or 'table' (see :attr:`Check.axis`).
+        Whether a vector test result returned by `fn` is by
+        'row', 'column', or 'table' (see :attr:`Check.axis`).
     message
-      Default message reported on test failure (see :attr:`Check.message`).
+        Default message reported on test failure (see :attr:`Check.message`).
     tag
-      Default tag (see :attr:`Check.tag`).
+        Default tag (see :attr:`Check.tag`).
 
     Returns
     -------

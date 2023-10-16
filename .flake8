@@ -7,4 +7,15 @@ max-line-length = 88
 # D107 Missing docstring in __init__
 # D202 No blank lines allowed after function docstring
 # W503 line break before binary operator
-ignore = ANN101, ANN102, ANN401, D105, D107, D202, W503
+
+## Temporary
+# DOC101 Docstring contains fewer arguments than in function signature
+# DOC103 Docstring arguments are different from function arguments
+# DOC201 Function does not have a return section in docstring
+ignore = ANN101, ANN102, ANN401, D105, D107, D202, DOC101, DOC103, DOC201, W503
+
+# pydoclint
+docstring-convention = numpy
+style = numpy
+arg-type-hints-in-docstring = False
+check-return-types = False

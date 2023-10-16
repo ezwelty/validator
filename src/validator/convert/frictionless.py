@@ -25,14 +25,14 @@ def field_to_schema(field: dict, schema: dict = None) -> Schema:
     Parameters
     ----------
     field
-      Frictionless Table Schema field descriptor
-      (https://specs.frictionlessdata.io/table-schema/#field-descriptors).
+        Frictionless Table Schema field descriptor
+        (https://specs.frictionlessdata.io/table-schema/#field-descriptors).
     schema
-      Frictionless Table Schema descriptor
-      (https://specs.frictionlessdata.io/table-schema).
-      If provided and `field['name']` is in `schema['primaryKey']`,
-      then the field is required. Furthermore, if `schema['primaryKey']` only
-      contains `field['name']`, then the field is unique.
+        Frictionless Table Schema descriptor
+        (https://specs.frictionlessdata.io/table-schema).
+        If provided and `field['name']` is in `schema['primaryKey']`,
+        then the field is required. Furthermore, if `schema['primaryKey']` only
+        contains `field['name']`, then the field is unique.
 
     Examples
     --------
@@ -92,17 +92,17 @@ def schema_to_schema(
     Parameters
     ----------
     schema
-      Frictionless Table Schema descriptor
-      (https://specs.frictionlessdata.io/table-schema).
+        Frictionless Table Schema descriptor
+        (https://specs.frictionlessdata.io/table-schema).
     require
-      Whether to check presence of non-required columns.
-      If `None`, these columns, if missing, are filled with null values.
+        Whether to check presence of non-required columns.
+        If `None`, these columns, if missing, are filled with null values.
     order
-      Whether to check column order.
-      If `None`, columns are reordered to match.
+        Whether to check column order.
+        If `None`, columns are reordered to match.
     strict
-      Whether to check presence of extra columns.
-      If `None`, these columns are dropped.
+        Whether to check presence of extra columns.
+        If `None`, these columns are dropped.
 
     Examples
     --------
@@ -219,10 +219,10 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
     Parameters
     ----------
     schema
-      Frictionless Tabular Resource descriptor
-      (https://specs.frictionlessdata.io/tabular-data-resource).
+        Frictionless Tabular Resource descriptor
+        (https://specs.frictionlessdata.io/tabular-data-resource).
     **kwargs
-      Optional arguments to :func:`schema_to_schema`.
+        Optional arguments to :func:`schema_to_schema`.
 
     Examples
     --------
@@ -276,19 +276,19 @@ def package_to_schema(
     Parameters
     ----------
     schema
-      Frictionless Tabular Data Package descriptor
-      (https://specs.frictionlessdata.io/tabular-data-package).
+        Frictionless Tabular Data Package descriptor
+        (https://specs.frictionlessdata.io/tabular-data-package).
     require
-      Whether to check presence of non-required tables.
-      If `None`, tables, if missing, are filled with null values.
+        Whether to check presence of non-required tables.
+        If `None`, tables, if missing, are filled with null values.
     order
-      Whether to check table order.
-      If `None`, tables are reordered to match.
+        Whether to check table order.
+        If `None`, tables are reordered to match.
     strict
-      Whether to check presence of extra tables.
-      If `None`, these tables are dropped.
+        Whether to check presence of extra tables.
+        If `None`, these tables are dropped.
     columns
-      Column-level arguments passed to :func:`schema_to_schema`.
+        Column-level arguments passed to :func:`schema_to_schema`.
 
     Examples
     --------

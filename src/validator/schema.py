@@ -19,24 +19,24 @@ class Schema:
     Parameters
     ----------
     schema
-      Schema definition as a dictionary, where each key is a :class:`Target`
-      and each value is either a :class:`Check`, :type:`list` of :class:`Check`,
-      or a dictionary of subschemas. Since each :class:`Target` is unique,
-      they can repeated at will (e.g. `{Column(): [], Column(): []}`).
+        Schema definition as a dictionary, where each key is a :class:`Target`
+        and each value is either a :class:`Check`, :type:`list` of :class:`Check`,
+        or a dictionary of subschemas. Since each :class:`Target` is unique,
+        they can repeated at will (e.g. `{Column(): [], Column(): []}`).
 
-      Any nesting is allowed, except that the target column or table name cannot
-      be changed once set. For example, `{Table('X'): {Table('X'): []}}` and
-      `{Table('X'): {Table(): []}}` are valid (`Table()` inherits the table name
-      from `Table('x')`), but `{Table('X'): {Table('Y'): []}}` is not.
+        Any nesting is allowed, except that the target column or table name cannot
+        be changed once set. For example, `{Table('X'): {Table('X'): []}}` and
+        `{Table('X'): {Table(): []}}` are valid (`Table()` inherits the table name
+        from `Table('x')`), but `{Table('X'): {Table('Y'): []}}` is not.
 
-      Wildcard targets are applied to all elements available at check runtime.
-      For example, `Column()` is applied to all columns in the data by the time
-      it is evaluated.
+        Wildcard targets are applied to all elements available at check runtime.
+        For example, `Column()` is applied to all columns in the data by the time
+        it is evaluated.
 
     Raises
     ------
     ValueError
-      Invalid schema (with a detailed list of errors).
+        Invalid schema (with a detailed list of errors).
     """
 
     def __init__(self, schema: SchemaDict) -> None:
@@ -52,6 +52,11 @@ class Schema:
     def _flatten(checks: SchemaDict) -> FlatSchemaDict:
         """
         Flatten checks.
+
+        Raises
+        ------
+        ValueError
+            Invalid schema (with a detailed list of errors).
 
         Examples
         --------
@@ -309,18 +314,23 @@ class Schema:
         Parameters
         ----------
         data
-          Tabular data.
+            Tabular data.
         name
-          Class and name of `data` (e.g. `Column('x')`).
-          If not provided, attempts to guess the class based on the type of `data`
-          (e.g. `Table()` for :class:`pandas.DataFrame`).
+            Class and name of `data` (e.g. `Column('x')`).
+            If not provided, attempts to guess the class based on the type of `data`
+            (e.g. `Table()` for :class:`pandas.DataFrame`).
         target
-          Name of the tabular element to check. Defaults to `name`.
-          If provided, must be a child of `name` (e.g. `Column('x')` in `Table()`).
+            Name of the tabular element to check. Defaults to `name`.
+            If provided, must be a child of `name` (e.g. `Column('x')` in `Table()`).
         copy
-          Whether to process a (deep) copy of `data`.
-          If any checks transform their input,
-          this ensures that the changes do not propagate to the original `data`.
+            Whether to process a (deep) copy of `data`.
+            If any checks transform their input,
+            this ensures that the changes do not propagate to the original `data`.
+
+        Raises
+        ------
+        ValueError
+            Failed to assign output of check to check target.
 
         Examples
         --------
@@ -522,7 +532,7 @@ class Schema:
         Parameters
         ----------
         *schemas
-          Dictionaries representing a schema.
+            Dictionaries representing a schema.
         """
 
         def _deserialize(schemas: List[dict]) -> dict:
@@ -551,7 +561,7 @@ class Schema:
         Parameters
         ----------
         other
-          Schema to concatenate to the end of the first schema.
+            Schema to concatenate to the end of the first schema.
 
         Examples
         --------
@@ -572,13 +582,13 @@ class Report:
     Parameters
     ----------
     results
-      Result of each `Check`.
+        Result of each `Check`.
     target
-      Target of the run.
+        Target of the run.
     input
-      Input data for `target`.
+        Input data for `target`.
     output
-      Output (potentially transformed) data for `target`.
+        Output (potentially transformed) data for `target`.
     """
 
     def __init__(
@@ -594,6 +604,7 @@ class Report:
         self.output = output
 
     def __repr__(self) -> str:
+        """Represent as a string."""
         return stringify_call(
             self.__class__.__name__, self.target, valid=self.valid, counts=self.counts
         )
@@ -605,7 +616,12 @@ class Report:
         Parameters
         ----------
         other
-          Report to concatenate to the end of the first report.
+            Report to concatenate to the end of the first report.
+
+        Raises
+        ------
+        ValueError
+            Cannot concatenate reports with different targets.
 
         Example
         -------
@@ -685,7 +701,7 @@ class Report:
         Parameters
         ----------
         explode
-          Whether to expand `Result` with a non-scalar test result to multiple rows.
+            Whether to expand `Result` with a non-scalar test result to multiple rows.
 
         Examples
         --------

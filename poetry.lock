@@ -64,6 +64,14 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "docstring-parser-fork"
+version = "0.0.4"
+description = "Parse Python docstrings in reST, Google and Numpydoc format"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[[package]]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -255,6 +263,23 @@ optional = false
 python-versions = ">=3.8"
 
 [[package]]
+name = "pydoclint"
+version = "0.3.4"
+description = "A Python docstring linter that checks arguments, returns, yields, and raises sections"
+category = "dev"
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+click = ">=8.0.0"
+docstring-parser-fork = ">=0.0.4"
+flake8 = {version = ">=4", optional = true, markers = "extra == \"flake8\""}
+tomli = {version = ">=2.0.1", markers = "python_version < \"3.11\""}
+
+[package.extras]
+flake8 = ["flake8 (>=4)"]
+
+[[package]]
 name = "pydocstyle"
 version = "6.3.0"
 description = "Python docstring style checker"
@@ -364,8 +389,8 @@ python-versions = ">=2"
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">= 3.8.2"
-content-hash = "b0ef37a8ba7fed001f2eacda6ce1d5b21fcaec25d902da1f0498b5b0129522ae"
+python-versions = ">= 3.8.2,< 4.0"
+content-hash = "a5f9f6d5a6744243cc1e1b0933745e5530fddbdc15d3cbf164e4d487f85168af"
 
 [metadata.files]
 attrs = [
@@ -406,6 +431,10 @@ colorama = [
 ]
 daff = [
     {file = "daff-1.3.46.tar.gz", hash = "sha256:22d0da9fd6a3275b54c926a9c97b180f9258aad65113ea18f3fec52cbadcd818"},
+]
+docstring-parser-fork = [
+    {file = "docstring_parser_fork-0.0.4-py3-none-any.whl", hash = "sha256:7f59547c76e96e5c1f872952accef88ae3cb2969c2451c0a4f2a668fd436be02"},
+    {file = "docstring_parser_fork-0.0.4.tar.gz", hash = "sha256:86ec8066e8fa4cee6994fe288aaf8f67956309e82edea4f64271e3c8fbfbd9a9"},
 ]
 exceptiongroup = [
     {file = "exceptiongroup-1.1.1-py3-none-any.whl", hash = "sha256:232c37c63e4f682982c8b6459f33a8981039e5fb8756b2074364e5055c498c9e"},
@@ -519,6 +548,10 @@ pluggy = [
 pycodestyle = [
     {file = "pycodestyle-2.11.1-py2.py3-none-any.whl", hash = "sha256:44fe31000b2d866f2e41841b18528a505fbd7fef9017b04eff4e2648a0fadc67"},
     {file = "pycodestyle-2.11.1.tar.gz", hash = "sha256:41ba0e7afc9752dfb53ced5489e89f8186be00e599e712660695b7a75ff2663f"},
+]
+pydoclint = [
+    {file = "pydoclint-0.3.4-py2.py3-none-any.whl", hash = "sha256:2af933b5ce4a11c63da00bc541a1c35b9a705ae4362e4307c0e99f724d5f7873"},
+    {file = "pydoclint-0.3.4.tar.gz", hash = "sha256:3523507ca8092714951da399396ef11c5f6dec5275403040e8ec799c83de608b"},
 ]
 pydocstyle = [
     {file = "pydocstyle-6.3.0-py3-none-any.whl", hash = "sha256:118762d452a49d6b05e194ef344a55822987a462831ade91ec5c06fd2169d019"},

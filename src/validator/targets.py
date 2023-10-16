@@ -144,6 +144,11 @@ def classify_data(data: Data) -> Type[Target]:
     """
     Classify tabular type of input data.
 
+    Raises
+    ------
+    ValueError
+        Cannot classify data as Column, Table, or Tables.
+
     Examples
     --------
     >>> import pandas as pd
@@ -172,6 +177,19 @@ def extract_data(
 ) -> Dict[Type[Target], Data]:
     """
     Extract data.
+
+    Raises
+    ------
+    ValueError
+        Data format not consistent with `name`.
+    ValueError
+        `target` is not a child of `name`.
+    ValueError
+        Table or column names are `None`.
+    ValueError
+        Table or column names are not unique.
+    ValueError
+        Failed to extract data for `target` from `data`.
 
     Examples
     --------

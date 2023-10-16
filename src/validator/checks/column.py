@@ -22,13 +22,14 @@ def unique(s: pd.Series) -> pd.Series:
 
     Null values are ignored.
 
-    Examples:
-      >>> s = pd.Series([0, 1, 1, pd.NA, pd.NA])
-      >>> unique(s)
-      0     True
-      1    False
-      2    False
-      dtype: bool
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 1, pd.NA, pd.NA])
+    >>> unique(s)
+    0     True
+    1    False
+    2    False
+    dtype: bool
     """
     return ~s.dropna().duplicated(keep=False)
 
@@ -38,19 +39,20 @@ def in_list(s: pd.Series, *, values: Iterable) -> pd.Series:
     """
     Check whether values are in a set of allowed values.
 
-    Examples:
-      >>> s = pd.Series([1, 2, None], dtype='float')
-      >>> in_list(s, values=[1])
-      0     True
-      1    False
-      2     <NA>
-      dtype: boolean
-      >>> s = pd.Series([1, 2, None], dtype='Int64')
-      >>> in_list(s, values=[1])
-      0     True
-      1    False
-      2     <NA>
-      dtype: boolean
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, None], dtype='float')
+    >>> in_list(s, values=[1])
+    0     True
+    1    False
+    2     <NA>
+    dtype: boolean
+    >>> s = pd.Series([1, 2, None], dtype='Int64')
+    >>> in_list(s, values=[1])
+    0     True
+    1    False
+    2     <NA>
+    dtype: boolean
     """
     valid = pd.Series(dtype='boolean', index=s.index)
     not_null = s.notnull()
@@ -121,17 +123,21 @@ def in_foreign_column(
 
     Null values are ignored.
 
-    Args:
-      table: Foreign table name.
-      column: Foreign column name.
+    Parameters
+    ----------
+    table
+        Foreign table name.
+    column
+        Foreign column name.
 
-    Example:
-      >>> s = pd.Series([0, 1, pd.NA])
-      >>> dfs = {'table': pd.DataFrame({'id': [0]})}
-      >>> in_foreign_column(s, dfs, table='table', column='id')
-      0     True
-      1    False
-      dtype: bool
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, pd.NA])
+    >>> dfs = {'table': pd.DataFrame({'id': [0]})}
+    >>> in_foreign_column(s, dfs, table='table', column='id')
+    0     True
+    1    False
+    dtype: bool
     """
     foreign = dfs[table][column]
     return s[not_null].isin(foreign)
@@ -153,24 +159,29 @@ def parse_as_type(
     """
     Parse column as a certain data type.
 
-    Args:
-        type: Data type.
+    Parameters
+    ----------
+    type
+        Data type.
 
-    Raises:
-      NotImplementedError: Type not supported.
+    Raises
+    ------
+    NotImplementedError
+        Type not supported.
 
-    Examples:
-      >>> valid, result = parse_as_type(pd.Series([0, 1, pd.NA]), type='boolean')
-      >>> valid
-      0    True
-      1    True
-      2    True
-      dtype: bool
-      >>> result
-      0    False
-      1     True
-      2     <NA>
-      dtype: boolean
+    Examples
+    --------
+    >>> valid, result = parse_as_type(pd.Series([0, 1, pd.NA]), type='boolean')
+    >>> valid
+    0    True
+    1    True
+    2    True
+    dtype: bool
+    >>> result
+    0    False
+    1     True
+    2     <NA>
+    dtype: boolean
     """
     parser = globals().get(f'parse_{type}')
     if not parser:

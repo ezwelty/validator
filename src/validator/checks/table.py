@@ -45,19 +45,23 @@ def has_sorted_columns(
     """
     Check whether column names are sorted.
 
-    Args:
-      columns: Sorted column names.
-      sort: Whether to sort table columns to match `columns`.
+    Arguments
+    ---------
+    columns
+        Sorted column names.
+    sort
+        Whether to sort table columns to match `columns`.
         Columns not named in `columns` are ignored and left in place.
 
-    Examples:
-      >>> df = pd.DataFrame(columns=['y', 'z', 'x'])
-      >>> has_sorted_columns(df, columns=['x', 'z'])
-      {'y': True, 'z': False, 'x': False}
-      >>> has_sorted_columns(df, columns=['x', 'z'], sort=True)
-      {'y': True, 'x': True, 'z': True}
-      >>> list(df)
-      ['y', 'x', 'z']
+    Examples
+    --------
+    >>> df = pd.DataFrame(columns=['y', 'z', 'x'])
+    >>> has_sorted_columns(df, columns=['x', 'z'])
+    {'y': True, 'z': False, 'x': False}
+    >>> has_sorted_columns(df, columns=['x', 'z'], sort=True)
+    {'y': True, 'x': True, 'z': True}
+    >>> list(df)
+    ['y', 'x', 'z']
     """
     ordered = sort_partial(list(df), order=columns)
     if sort:
@@ -78,27 +82,30 @@ def unique_rows(df: pd.DataFrame, *, columns: Sequence[Hashable] = None) -> pd.S
 
     Rows with null values are ignored.
 
-    Args:
-      columns: Names of columns to consider for testing uniqueness.
+    Arguments
+    ---------
+    columns
+        Names of columns to consider for testing uniqueness.
         By default, all columns are used.
 
-    Example:
-      >>> df = pd.DataFrame({'x': [1, 1, 1], 'y': [1, 2, 2]})
-      >>> unique_rows(df, columns=['x'])
-      0    False
-      1    False
-      2    False
-      dtype: bool
-      >>> unique_rows(df)
-      0     True
-      1    False
-      2    False
-      dtype: bool
+    Examples
+    --------
+    >>> df = pd.DataFrame({'x': [1, 1, 1], 'y': [1, 2, 2]})
+    >>> unique_rows(df, columns=['x'])
+    0    False
+    1    False
+    2    False
+    dtype: bool
+    >>> unique_rows(df)
+    0     True
+    1    False
+    2    False
+    dtype: bool
 
-      >>> df = pd.DataFrame({'x': [1, pd.NA, pd.NA], 'y': [1, pd.NA, pd.NA]})
-      >>> unique_rows(df)
-      0     True
-      dtype: bool
+    >>> df = pd.DataFrame({'x': [1, pd.NA, pd.NA], 'y': [1, pd.NA, pd.NA]})
+    >>> unique_rows(df)
+    0     True
+    dtype: bool
     """
     if columns is not None:
         df = df[columns]
@@ -143,25 +150,29 @@ def in_foreign_columns(
 
     Rows with one or more null values in `columns` are ignored.
 
-    Args:
-      table: Foreign table name.
-      columns: Column mapping, with column names for `df` as keys,
+    Arguments
+    ---------
+    table
+        Foreign table name.
+    columns
+        Column mapping, with column names for `df` as keys,
         and column names for `table` as values.
 
-    Example:
-      >>> df = pd.DataFrame({'x': [0, 0, 1, pd.NA], 'y': [0, 1, 1, 2]})
-      >>> dfs = {'table': pd.DataFrame({'x': [0, 0], 'y': [0, 1]})}
-      >>> in_foreign_columns(df, dfs, table='table', columns={'x': 'x', 'y': 'y'})
-      0     True
-      1     True
-      2    False
-      dtype: bool
-      >>> in_foreign_columns(df, dfs, table='table', columns={'y': 'y'})
-      0     True
-      1     True
-      2     True
-      3    False
-      dtype: bool
+    Examples
+    --------
+    >>> df = pd.DataFrame({'x': [0, 0, 1, pd.NA], 'y': [0, 1, 1, 2]})
+    >>> dfs = {'table': pd.DataFrame({'x': [0, 0], 'y': [0, 1]})}
+    >>> in_foreign_columns(df, dfs, table='table', columns={'x': 'x', 'y': 'y'})
+    0     True
+    1     True
+    2    False
+    dtype: bool
+    >>> in_foreign_columns(df, dfs, table='table', columns={'y': 'y'})
+    0     True
+    1     True
+    2     True
+    3    False
+    dtype: bool
     """
     local = df[columns.keys()].dropna()
     local_key = pd.MultiIndex.from_frame(local)
@@ -196,31 +207,36 @@ def matches_foreign_columns(
     Rows in either table with one or more nulls in a join or match column are
     ignored.
 
-    Args:
-      table: Foreign table name.
-      join: Columns to use for the join, with column names for `df` as keys,
+    Arguments
+    ---------
+    table
+        Foreign table name.
+    join
+        Columns to use for the join, with column names for `df` as keys,
         and column names for `table` as values.
-      columns: Columns to match, with column names for `df` as keys,
+    columns
+        Columns to match, with column names for `df` as keys,
         and column names for `table` as values.
 
-    Example:
-      >>> df = pd.DataFrame(
-      ...   {'id': [0, 0, 1, 1], 'x': [0, 1, 1, pd.NA]},
-      ...   index=[0, 1, 3, 4]
-      ... )
-      >>> dfs = {'table': pd.DataFrame({'id': [0, 1], 'x': [0, 1]})}
-      >>> valid = matches_foreign_columns(
-      ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
-      ... )
-      >>> df.loc[valid.index[~valid]]
-         id  x
-      1   0  1
+    Examples
+    --------
+    >>> df = pd.DataFrame(
+    ...   {'id': [0, 0, 1, 1], 'x': [0, 1, 1, pd.NA]},
+    ...   index=[0, 1, 3, 4]
+    ... )
+    >>> dfs = {'table': pd.DataFrame({'id': [0, 1], 'x': [0, 1]})}
+    >>> valid = matches_foreign_columns(
+    ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
+    ... )
+    >>> df.loc[valid.index[~valid]]
+        id  x
+    1   0  1
 
-      >>> dfs = {'table': pd.DataFrame({'id': [2], 'x': [0]})}
-      >>> matches_foreign_columns(
-      ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
-      ... )
-      Series([], dtype: bool)
+    >>> dfs = {'table': pd.DataFrame({'id': [2], 'x': [0]})}
+    >>> matches_foreign_columns(
+    ...   df, dfs, table='table', join={'id': 'id'}, columns={'x': 'x'}
+    ... )
+    Series([], dtype: bool)
     """
     # Ignore join keys or lookup columns with null
     local = df[[*join, *columns]].dropna()
