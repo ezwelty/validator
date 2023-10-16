@@ -1,6 +1,8 @@
 validator
 =========
 
+[![tests](https://github.com/ezwelty/validator/actions/workflows/test.yaml/badge.svg)](https://github.com/ezwelty/validator/actions/workflows/test.yaml)
+
 `validator` makes it easy to validate and transform tabular data in an expressive and reusable way. For example, you can:
 
 - Define a `Schema` against which to validate a `Column`, `Table`, or group of `Tables`, including by converting from a [Frictionless](https://specs.frictionlessdata.io) specification (`convert.frictionless`).
