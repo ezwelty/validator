@@ -147,7 +147,7 @@ def is_type(s: pd.Series, *, type: str) -> bool:
 
 @register_check(message='Value could not be parsed to type {type}')
 def parse_as_type(
-    s: pd.Series, *, type='string', **kwargs: Any
+    s: pd.Series, *, type: str = 'string', **kwargs: Any
 ) -> Tuple[Union[bool, pd.Series], pd.Series]:
     """
     Parse column as a certain data type.

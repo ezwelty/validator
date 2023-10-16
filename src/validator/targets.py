@@ -16,7 +16,7 @@ class Target(ABC):
     CHILDREN: Set[Type['Target']] = {}
 
     @classmethod
-    def create(cls, **kwargs) -> 'Target':
+    def create(cls, **kwargs: Any) -> 'Target':
         """
         Examples
         --------

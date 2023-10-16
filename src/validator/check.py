@@ -133,7 +133,7 @@ def _test_params(fn: Callable, params: Dict[str, Any] = None) -> Dict[str, Any]:
 
 
 def _generate_method(
-    fn,
+    fn: Callable,
     inputs: Dict[str, Target] = None,
     required: Union[List[Target], Callable] = None,
     test: bool = True,
@@ -145,7 +145,7 @@ def _generate_method(
     if not callable(required):
         required = _test_required(inputs=inputs, required=required)
 
-    def wrapper(method):
+    def wrapper(method: Callable) -> Callable:
         fn_arg_names = [
             param.name
             for param in list(inspect.signature(method).parameters.values())[1:]
@@ -160,7 +160,7 @@ def _generate_method(
         }
 
         @makefun.wraps(method, check=True)
-        def wrapped(**kwargs):
+        def wrapped(**kwargs: Any) -> Check:
             cls = kwargs.pop(list(kwargs.keys())[0])
             params = {key: kwargs.pop(key) for key in fn_arg_names}
             if callable(required):
@@ -326,7 +326,7 @@ class Check:
     def __repr__(self) -> str:
         return stringify_call(f'Check.{self.name}', **self.params)
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, type(self))
             and self.fn is other.fn
@@ -597,7 +597,7 @@ class Result:
         self.missing = missing
         self.time = time
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return stringify_call(
             self.__class__.__name__, self.code, target=self.target, check=self.check
         )
@@ -612,9 +612,8 @@ class Result:
         if (
             self.valid is True
             or (isinstance(self.valid, pd.Series) and self.valid.all())
-            or
             # Only transformed input (no test result)
-            (self.valid is None and self.output is not None)
+            or (self.valid is None and self.output is not None)
         ):
             return 'pass'
         if self.valid is False or (
@@ -776,7 +775,7 @@ def register_check(
             doc=None,
             builtin=False,
         )
-        def constructor(cls, **kwargs: Any) -> Check:
+        def constructor(cls: Type[Check], **kwargs: Any) -> Check:
             # fn_kwargs = {key: kwargs.pop(key) for key in reserved}
             # kwargs = {**default, **kwargs}
             # return cls(fn=fn, kwargs=fn_kwargs, **static, **kwargs)
