@@ -176,15 +176,16 @@ def schema_to_schema(
         if optional:
             checks.append(Check.has_columns(optional, fill=True))
     # Check column order
+    columns = [field['name'] for field in schema['fields']]
     if order is True:
-        checks.append(Check.has_sorted_columns(required + optional))
+        checks.append(Check.has_sorted_columns(columns, sort=False))
     elif order is None:
-        checks.append(Check.has_sorted_columns(required + optional, sort=True))
+        checks.append(Check.has_sorted_columns(columns, sort=True))
     # Filter extra columns
     if strict is True:
-        checks.append(Check.only_has_columns(required + optional))
+        checks.append(Check.only_has_columns(columns, drop=False))
     elif strict is None:
-        checks.append(Check.only_has_columns(required + optional, drop=True))
+        checks.append(Check.only_has_columns(columns, drop=True))
     # Check table column structure before columns
     flow[Table()] = checks
     # Column checks
