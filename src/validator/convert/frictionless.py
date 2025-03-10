@@ -87,7 +87,7 @@ def schema_to_schema(
     Convert Frictionless Table Schema to Schema.
 
     Only internal, unnamed foreign keys are included
-    (e.g. `{'fields': ['x'], 'reference': {'resource': '', 'fields': ['id']}}`).
+    (e.g. `{'fields': ['x'], 'reference': {'fields': ['id']}}`).
 
     Parameters
     ----------
@@ -144,7 +144,7 @@ def schema_to_schema(
 
     With an internal foreign key.
 
-    >>> foreign_key = {'fields': ['x'], 'reference': {'resource': '', 'fields': ['id']}}
+    >>> foreign_key = {'fields': ['x'], 'reference': {'fields': ['id']}}
     >>> schema = {'fields': fields, 'foreignKeys': [foreign_key]}
     >>> schema_to_schema(schema)
     Schema({Column('x'): [Check.in_column(column='id')]})
@@ -199,7 +199,7 @@ def schema_to_schema(
         checks.append(Check.unique_rows(primary_key))
     # Include only internal (unnamed) foreign keys
     for key in schema.get('foreignKeys', []):
-        if not key['reference']['resource']:
+        if not key['reference'].get('resource'):
             local = _format_names(key['fields'])
             foreign = _format_names(key['reference']['fields'])
             if len(local) == 1:
@@ -253,7 +253,7 @@ def resource_to_schema(resource: dict, **kwargs: Any) -> Schema:
     checks = []
     for key in resource['schema'].get('foreignKeys', []):
         if (
-            key['reference']['resource']
+            key['reference'].get('resource')
             and key['reference']['resource'] == resource['name']
         ):
             local = _format_names(key['fields'])
@@ -350,7 +350,7 @@ def package_to_schema(
         tasks = []
         for key in resource['schema'].get('foreignKeys', []):
             if (
-                key['reference']['resource']
+                key['reference'].get('resource')
                 and key['reference']['resource'] != resource['name']
             ):
                 local = _format_names(key['fields'])
