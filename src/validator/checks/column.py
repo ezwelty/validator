@@ -1,4 +1,6 @@
 """Column-level check functions."""
+import datetime
+import re
 from typing import Any, Callable, Dict, Hashable, Iterable, List, Tuple, Union
 
 import pandas as pd
@@ -248,26 +250,52 @@ def parse_boolean(
     return new
 
 
+def _is_date(s: pd.Series) -> bool:
+    """Check whether a series is of date(time) type."""
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return True
+    values = s.dropna()
+    if values.empty:
+        return True
+    if isinstance(values.iloc[0], (datetime.date, datetime.datetime)):
+        return True
+    return False
+
+
+def _is_datetime(s: pd.Series) -> bool:
+    """Check whether a series is of datetime type."""
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return True
+    values = s.dropna()
+    if values.empty:
+        return True
+    if isinstance(values.iloc[0], datetime.datetime):
+        return True
+    return False
+
+
 def parse_date(s: pd.Series, format: str = 'default') -> pd.Series:
-    """Parse values as dates."""
-    if pd.api.types.is_datetime64_dtype(s):
-        return s.dt.normalize()
-    patterns = {'default': '%Y-%m-%d', 'any': None}
-    pattern = patterns.get(format, format)
-    return pd.to_datetime(
-        s, errors='coerce', format=pattern, infer_datetime_format=pattern is None
-    ).dt.normalize()
+    """Parse values (strings only) as dates."""
+    if _is_date(s):
+        return s
+    if format == 'any':
+        raise NotImplementedError("Date format 'any' not supported")
+    if format == 'default' or format == '%Y-%m-%d':
+        return _coerce(s, map=datetime.date.fromisoformat)
+    return _coerce(s, map=lambda x: datetime.datetime.strptime(x, format).date())
 
 
 def parse_datetime(s: pd.Series, format: str = 'default') -> pd.Series:
-    """Parse values as datetimes."""
-    if pd.api.types.is_datetime64_dtype(s):
+    """Parse values (strings only) as datetimes."""
+    if _is_datetime(s):
         return s
-    patterns = {'default': '%Y-%m-%dT%H:%M:%S%z', 'any': None}
-    pattern = patterns.get(format, format)
-    return pd.to_datetime(
-        s, errors='coerce', format=pattern, infer_datetime_format=pattern is None
-    )
+    if format == 'any':
+        raise NotImplementedError("Datetime format 'any' not supported")
+    if format == 'default' or re.fullmatch(
+        r'%Y-%m-%d([T ]%H(:%M(:%S(\.%f)?)?)?(%z)?)?', format
+    ):
+        return _coerce(s, map=datetime.datetime.fromisoformat)
+    return _coerce(s, map=lambda x: datetime.datetime.strptime(x, format))
 
 
 def parse_year(s: pd.Series) -> pd.Series:
