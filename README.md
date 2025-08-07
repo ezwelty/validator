@@ -19,7 +19,7 @@ validator
 
 This package is not yet on [PyPI](https://pypi.org), but can still be installed with `pip` directly from this GitHub repository:
 
-```bash
+```sh
 pip install git+https://github.com/ezwelty/validator
 ```
 
@@ -80,7 +80,7 @@ report = schema(dfs)
 print(report)
 ```
 
-```py
+```
 Report(Tables(), valid=False, counts={'pass': 8, 'fail': 7})
 ```
 
@@ -207,7 +207,7 @@ print(txt)
 Schema.deserialize(*yaml.safe_load(txt))
 ```
 
-```py
+```
 Schema({
   Tables(): [Check.only_has_tables(tables=['main', 'secondary'], drop=False)],
   Table('secondary'): {
