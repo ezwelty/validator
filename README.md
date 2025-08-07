@@ -25,9 +25,11 @@ pip install git+https://github.com/ezwelty/validator
 
 ## Quick start
 
+Validate data against a schema.
+
 ```py
 import pandas as pd
-from validator import Schema, Column
+from validator import Check, Column, Schema, Table, Tables
 
 # Data to validate
 dfs = {
@@ -75,49 +77,43 @@ schema = Schema({
 
 # Validate the data against the schema
 report = schema(dfs)
-
-# Glimpse at the validation report
-print(report)
 ```
 
-```
-Report(Tables(), valid=False, counts={'pass': 8, 'fail': 7})
-```
+Glimpse at the validation report.
 
 ```py
-# Dive deeper into the results
-df = report.to_dataframe().query('code == "fail"')[
+report
+# Report(Tables(), valid=False, counts={'pass': 8, 'fail': 7})
+```
+
+Dive deeper into the results.
+
+```py
+report.to_dataframe().query('code == "fail"')[
   ['table', 'column', 'row', 'value', 'message']
 ]
-print(df.replace({None: ''}))
+#         table      column     row   value                                            message
+# 2        main  integer_pk     [3]  [<NA>]                          Required value is missing
+# 4        main  number_max     [1]     [a]           Value could not be parsed to type number
+# 5        main  number_max     [2]  [11.0]                                          Value > 1
+# 6        main     boolean     [2]     [a]          Value could not be parsed to type boolean
+# 10  secondary  integer_pk     [3]     [4]                       Not found in main.integer_pk
+# 12  secondary   string_pk     [3]  [<NA>]                          Required value is missing
+# 13  secondary              [1, 2]          Duplicate combination of columns ['integer_pk'...
 ```
 
-```
-        table      column     row   value                                            message
-2        main  integer_pk     [3]  [<NA>]                          Required value is missing
-4        main  number_max     [1]     [a]           Value could not be parsed to type number
-5        main  number_max     [2]  [11.0]                                          Value > 1
-6        main     boolean     [2]     [a]          Value could not be parsed to type boolean
-10  secondary  integer_pk     [3]     [4]                       Not found in main.integer_pk
-12  secondary   string_pk     [3]  [<NA>]                          Required value is missing
-13  secondary              [1, 2]          Duplicate combination of columns ['integer_pk'...
-```
+Access the resulting data, which has been transformed.
 
 ```py
-# Or access the resulting data, which has been transformed
-new_dfs = report.output
-print(dfs['secondary'].dtypes, new_dfs['secondary'].dtypes, sep='\n\n')
-```
-
-```
-integer_pk    object
-string_pk     object
-dtype: object
-
-integer_pk      Int64
-string_pk      string
-extra         boolean
-dtype: object
+dfs['secondary'].dtypes
+# integer_pk    object
+# string_pk     object
+# dtype: object
+report.output['secondary'].dtypes
+# integer_pk      Int64
+# string_pk      string
+# extra         boolean
+# dtype: object
 ```
 
 ## Checks
@@ -162,60 +158,59 @@ def equal_to_other_column(
 schema += Schema({
   Column('y', table='secondary'): Check.equal_to_other_column('x')
 })
+```
 
-# Write to text
+Serialize the schema and write it to a YAML-formatted string.
+
+```py
 obj = schema.serialize()
 txt = yaml.dump(obj, sort_keys=False)
 print(txt)
+# - checks:
+#   - name: only_has_tables
+#     params:
+#       tables:
+#       - main
+#       - secondary
+#       drop: false
+# - table: secondary
+#   schemas:
+#   - table: null
+#     checks:
+#     - name: has_columns
+#       params:
+#         columns:
+#         - x
+#         fill: false
+#   - column: x
+#     checks:
+#     - name: in_foreign_column
+#       params:
+#         table: main
+#         column: x
+#       message: Missing from {table}.{column}
+#       tag: warning
+# - column: y
+#   table: secondary
+#   checks:
+#   - name: equal_to_other_column
+#     params:
+#       column: x
 ```
 
-```yml
-- checks:
-  - name: only_has_tables
-    params:
-      tables:
-      - main
-      - secondary
-      drop: false
-- table: secondary
-  schemas:
-  - table: null
-    checks:
-    - name: has_columns
-      params:
-        columns:
-        - x
-        fill: false
-  - column: x
-    checks:
-    - name: in_foreign_column
-      params:
-        table: main
-        column: x
-      message: Missing from {table}.{column}
-      tag: warning
-- column: y
-  table: secondary
-  checks:
-  - name: equal_to_other_column
-    params:
-      column: x
-```
+Or deserialize a schema from YAML text.
 
 ```py
-# Read back from text
-Schema.deserialize(*yaml.safe_load(txt))
-```
-
-```
-Schema({
-  Tables(): [Check.only_has_tables(tables=['main', 'secondary'], drop=False)],
-  Table('secondary'): {
-    Table(): [Check.has_columns(columns=['x'], fill=False)],
-    Column('x'): [Check.in_foreign_column(table='main', column='x')]
-  },
-  Column('y', table='secondary'): [Check.equal_to_other_column(column='x')]
-})
+obj = yaml.safe_load(txt)
+Schema.deserialize(*obj)
+# Schema({
+#   Tables(): [Check.only_has_tables(tables=['main', 'secondary'], drop=False)],
+#   Table('secondary'): {
+#     Table(): [Check.has_columns(columns=['x'], fill=False)],
+#     Column('x'): [Check.in_foreign_column(table='main', column='x')]
+#   },
+#   Column('y', table='secondary'): [Check.equal_to_other_column(column='x')]
+# })
 ```
 
 ### Check functions explained
