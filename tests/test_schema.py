@@ -173,6 +173,13 @@ failures = pd.DataFrame(
         },
         {
             'table': 'secondary',
+            'column': 'integer_pk',
+            'check': Check.in_foreign_column(table='main', column='integer_pk_missing'),
+            'row': [0, 1, 2, 3],
+            'value': [1, 2, 2, 4],
+        },
+        {
+            'table': 'secondary',
             'column': 'string_pk',
             'check': Check.not_null(),
             'row': [3],
@@ -202,16 +209,7 @@ skips = pd.DataFrame(
             'column': 'integer_pk',
             'check': Check.in_column(column='integer_pk_missing'),
             'message': "Missing required inputs [Column('integer_pk_missing')]",
-        },
-        {
-            'table': 'secondary',
-            'column': 'integer_pk',
-            'check': Check.in_foreign_column(table='main', column='integer_pk_missing'),
-            'message': (
-                'Missing required inputs '
-                + "[Column('integer_pk_missing', table='main')]"
-            ),
-        },
+        }
     ]
 )
 
@@ -242,7 +240,7 @@ def test_checks_a_column_with_missing_requirements() -> None:
     column = 'integer_pk'
     report = schema(dfs, target=Column(column, table))
     assert report.target.equals(Column(column, table))
-    assert report.counts == {'pass': 2, 'fail': 1, 'skip': 2}
+    assert report.counts == {'pass': 2, 'fail': 2, 'skip': 1}
     reports = [
         schema(dfs[table], name=Table(table), target=Column(column, table)),
         schema(dfs[table][column], name=Column(column, table)),
@@ -274,7 +272,7 @@ def test_checks_a_table_with_missing_requirements() -> None:
     report = schema(dfs, target=Table(table))
     assert report.target.equals(Table(table))
     # Error caused by foreign key check on non-parsed reference
-    assert report.counts == {'pass': 4, 'fail': 4, 'skip': 2, 'error': 1}
+    assert report.counts == {'pass': 4, 'fail': 5, 'skip': 1, 'error': 1}
     reports = [
         schema(dfs[table], name=Table(table), target=Table(table)),
         schema(dfs[table], name=Table(table)),
@@ -288,7 +286,7 @@ def test_checks_tables() -> None:
     report = schema(dfs)
     assert report.target.equals(Tables())
     assert report.valid is False
-    assert report.counts == {'pass': 9, 'fail': 15, 'skip': 2}
+    assert report.counts == {'pass': 9, 'fail': 16, 'skip': 1}
     reports = [schema(dfs, name=Tables()), schema(dfs, name=Tables(), target=Tables())]
     assert all(r.target.equals(report.target) for r in reports)
     assert all(r.counts == report.counts for r in reports)

@@ -109,10 +109,7 @@ def in_column(s: pd.Series, df: pd.DataFrame, *, column: Hashable) -> pd.Series:
     return s.isin(other) | s.isnull()
 
 
-@register_check(
-    message='Not found in {table}.{column}',
-    required=lambda table, column: [Column(column, table=table)],
-)
+@register_check(message='Not found in {table}.{column}')
 def in_foreign_column(
     s: pd.Series,
     dfs: Dict[Hashable, pd.DataFrame],
@@ -140,7 +137,18 @@ def in_foreign_column(
     0     True
     1    False
     dtype: bool
+    >>> in_foreign_column(s, dfs, table='table', column='missing')
+    0    False
+    1    False
+    dtype: boolean
+    >>> in_foreign_column(s, dfs, table='missing', column='id')
+    0    False
+    1    False
+    dtype: boolean
     """
+    not_null = s.notnull()
+    if table not in dfs or column not in dfs[table]:
+        return pd.Series(False, dtype='boolean', index=s.index[not_null])
     foreign = dfs[table][column]
     return s[not_null].isin(foreign)
 

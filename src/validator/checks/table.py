@@ -133,10 +133,7 @@ def in_columns(df: pd.DataFrame, *, columns: Dict[Hashable, Hashable]) -> pd.Ser
 
 @register_check(
     message='Not found in {table}.{list(columns.values())}',
-    required=lambda table, columns: (
-        [Column(column) for column in columns]
-        + [Column(column, table=table) for column in columns.values()]
-    ),
+    required=lambda columns: [Column(column) for column in columns],
 )
 def in_foreign_columns(
     df: pd.DataFrame,
@@ -173,9 +170,21 @@ def in_foreign_columns(
     2     True
     3    False
     dtype: bool
+    >>> in_foreign_columns(df, dfs, table='missing', columns={'x': 'x'})
+    0    False
+    1    False
+    2    False
+    dtype: boolean
+    >>> in_foreign_columns(df, dfs, table='table', columns={'x': 'missing'})
+    0    False
+    1    False
+    2    False
+    dtype: boolean
     """
     local = df[columns.keys()].dropna()
     local_key = pd.MultiIndex.from_frame(local)
+    if table not in dfs or any(column not in dfs[table] for column in columns.values()):
+        return pd.Series(False, dtype='boolean', index=local.index)
     foreign_key = pd.MultiIndex.from_frame(dfs[table][columns.values()].dropna())
     return pd.Series(local_key.isin(foreign_key), index=local.index)
 
